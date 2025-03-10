@@ -5,13 +5,11 @@ import Link from 'next/link';
 
 export default function Header() {
     const [menuOpen, setMenuOpen] = useState(false);
-    const user = {
-        isLoggedIn: false,
-        profilePic: '/placeholder-profile.jpg',
-    };
+    const [user, setUser] = useState({isLoggedIn: true, profilePic: '/placeholder-profile.jpg'});
 
     function logOut() {
-        user.isLoggedIn = false
+        setUser({isLoggedIn: false, profilePic: '/placeholder-profile.jpg'});
+        setMenuOpen(false);
     }
 
     return (
@@ -44,7 +42,7 @@ export default function Header() {
                 {menuOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
                         <Link href="/profile" className="block px-4 py-2 hover:bg-gray-100">Profile</Link>
-                        <button className="block w-full text-left px-4 py-2 hover:bg-gray-100" onClick={logOut}>Logout</button>
+                        <button className="block w-full text-left px-4 py-2 hover:bg-gray-100 hover:cursor-pointer" onClick={() => logOut()}>Logout</button>
                     </div>
                 )}
             </div>
