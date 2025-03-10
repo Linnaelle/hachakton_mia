@@ -17,6 +17,9 @@ const userSchema = new Schema({
     timestamps: true
 })
 
+userSchema.index({ username: 1 })
+userSchema.index({ email: 1 })
+
 const User = mongoose.model('User', userSchema)
 
 const userValidation = Joi.object({

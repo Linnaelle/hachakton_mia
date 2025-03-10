@@ -10,6 +10,8 @@ const likeSchema = new Schema({
     timestamps: true
 })
 
+likeSchema.index({ user: 1, tweet: 1 })
+
 const Like = mongoose.model('Like', likeSchema)
 
 const likeValidation = Joi.object({

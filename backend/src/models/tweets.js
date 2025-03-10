@@ -16,6 +16,9 @@ const tweetSchema = new Schema({
     timestamps: true
 })
 
+tweetSchema.index({ author: 1 });
+tweetSchema.index({ isRetweet: 1 });
+
 const Tweet = mongoose.model('Tweet', tweetSchema)
 
 const tweetValidation = Joi.object({
