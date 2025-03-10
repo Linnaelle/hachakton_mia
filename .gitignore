@@ -1,2 +1,6 @@
+<<<<<<< HEAD
 IA/model_rodolphe/02_model_cnn_svm_InceptionV3/model_training/svm_best.joblib
 IA/model_rodolphe/02_model_cnn_svm_InceptionV3/model_training/best_inception_finetuned.h5
+=======
+IA/dataset/
+>>>>>>> 727f48f (version 1.0 for model, 65% with dataset-Train and 60% with dataset-Val)
