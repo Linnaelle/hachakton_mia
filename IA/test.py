@@ -20,8 +20,8 @@ epochs = 50
 num_classes = 7
 
 # Chemins de données
-train_dir = '/chemin/vers/dataset/train'
-test_dir = '/chemin/vers/dataset/test'
+train_dir = 'dataset/train'
+test_dir = 'dataset/test'
 
 # Définir l'augmentation de données équilibrée
 train_datagen = ImageDataGenerator(
