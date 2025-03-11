@@ -5,7 +5,9 @@ const { authenticate } = require('../middlewares/authMiddleware')
 
 // definitions des endpoints pour les tweets
 
-router.get('/', tweetController.getAllTweets)
+// Route pour récupérer le fil d’actualité
+// router.get("/timeline", authMiddleware, getHomeTimeline)
+router.get('/', authenticate, tweetController.getTimeline)
 router.post('/', authenticate, upload.single('media'), tweetController.createTweet)
 router.delete('/:id', authenticate, tweetController.deleteTweet)
 // route pour commenter un tweet
@@ -16,8 +18,7 @@ router.get('/:id', tweetController.getTweet)
 router.post('/:id/like', authenticate, tweetController.likeTweet)
 // route pour retweeter
 router.post('/:id/retweet', authenticate, tweetController.reTweet)
-// Route pour récupérer le fil d’actualité
-// router.get("/timeline", authMiddleware, getHomeTimeline)
-router.get("/timeline", authenticate, tweetController.getTimeline)
+
+router.get('/all', tweetController.getAllTweets)
 
 module.exports = router

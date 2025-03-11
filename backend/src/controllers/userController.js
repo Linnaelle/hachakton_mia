@@ -2,6 +2,7 @@ const { User, userValidation } = require("../models/users")
 const { Tweet } = require('../models/tweets')
 const ObjectId = require('mongoose').Types.ObjectId
 const bcrypt = require('bcryptjs')
+const { addNotificationToQueue } = require('../queues/notificationQueue')
 
 class userController {
     /**
@@ -106,11 +107,53 @@ class userController {
     }
 
     static async follow(req, res) {
-
+        try {
+            const userId = req.user.id; // L'utilisateur authentifié
+            const targetId = req.params.id.trim() // L'utilisateur à suivre/désuivre
+        
+            if (userId === targetId) {
+              return res.status(400).json({ error: "Vous ne pouvez pas vous suivre vous-même." })
+            }
+        
+            const user = await User.findById(userId)
+            const targetUser = await User.findById(targetId)
+        
+            if (!targetUser) {
+              return res.status(404).json({ error: "Utilisateur introuvable." })
+            }
+        
+            const alreadyFollowing = user.followings.includes(targetId)
+        
+            if (alreadyFollowing) {
+              // Unfollow : retirer de la liste
+              user.followings = user.followings.filter(id => id.toString() !== targetId)
+              targetUser.followers = targetUser.followers.filter(id => id.toString() !== userId)
+            } else {
+                // Follow : ajouter à la liste
+                user.followings.push(targetId)
+                targetUser.followers.push(userId)
+                // ✅ Ajouter une notification pour l'utilisateur suivi
+                const message = `${user.username} vous suit maintenant!`
+                await addNotificationToQueue(argetUser._id.toString(), message)
+            }
+        
+            await user.save();
+            await targetUser.save();
+        
+            res.json({
+              success: true,
+              following: !alreadyFollowing,
+              followersCount: targetUser.followers.length
+            });
+        
+          } catch (error) {
+            console.error("Erreur Follow:", error);
+            res.status(500).json({ error: "Erreur interne du serveur" });
+          }
     }
 
     static async userTimeline(req, res) {
-        
+
     }
 }
 

@@ -1,4 +1,4 @@
-const { sendNotification, notificationQueue } = require('../queues/notificationQueue')
+const { notificationQueue, addNotificationToQueue } = require('../queues/notificationQueue')
 const { Tweet, tweetValidation } = require('../models/tweets')
 const redis = require('../config/redis')
 const { wss } = require('../wsServer')
@@ -6,6 +6,7 @@ const mediaQueue = require('../queues/mediaQueue')
 const ObjectId = require('mongoose').Types.ObjectId
 const { Comment, commentValidation } = require('../models/comments')
 const { Like } = require('../models/likes')
+const { User } = require('../models/users')
 
 class tweetController {
     /**
@@ -95,10 +96,8 @@ class tweetController {
         await tweet.save()
         // Ajouter une notification dans la file Bull
         // await sendNotification(tweet.author.toString(), `${user.username} a liké votre tweet!`);
-        await notificationQueue.add({
-          recipientId: tweet.author.toString(),
-          message: `${req.user.username} a liké votre tweet!`,
-        });
+        const message = `${req.user.username} a liké votre tweet!`
+        await addNotificationToQueue(tweet.author.toString(), message)
 
         return res.json({ success: true, liked: true, likes: tweet.likes.length })
 
@@ -209,10 +208,11 @@ class tweetController {
       }
 
       try {
-        // check tweet exist
-          const tweet = await Tweet.findById(id)
-          if (!tweet){
-              return res.status(404).json({message: `Aucun tweet associé à l'id ${id}`})
+        
+           // Vérifier si le tweet existe
+          const tweet = await Tweet.findById(id).populate("author", "username");
+          if (!tweet) {
+            return res.status(404).json({ message: `Aucun tweet associé à l'id ${id}` });
           }
           const { error, value } = commentValidation.validate(req.body)
 
@@ -231,6 +231,12 @@ class tweetController {
           tweet.comments.push(newComment._id)
           await newComment.save()
           await tweet.save()
+
+          // Ajouter une notification dans la file Bull
+          if (tweet.author._id.toString() !== author) {
+            const message = `${req.user.username} a commenté votre tweet.`;
+            await addNotificationToQueue(tweet.author._id.toString(), message);
+          }
           return res.status(200).json(newComment)
           
       } catch(error) {
@@ -252,6 +258,56 @@ class tweetController {
 
 
     static async getTimeline(req, res) {
+      try {
+        const userId = req.user.id;
+    
+        // Récupérer les utilisateurs suivis
+        const user = await User.findById(userId).select('followings bookmarks');
+        if (!user) return res.status(404).json({ error: "Utilisateur introuvable" });
+    
+        // Récupérer les tweets des utilisateurs suivis
+        const followedTweets = await Tweet.find({ author: { $in: user.followings } })
+          .populate('author', 'username profile_img')
+          .sort({ createdAt: -1 }) // Trier du plus récent au plus ancien
+          .limit(50);
+    
+        // Récupérer les tweets likés et retweetés par l'utilisateur
+        const likedAndRetweetedTweets = await Like.find({ user: userId })
+          .populate({
+            path: 'tweet',
+            populate: { path: 'author', select: 'username profile_img' }
+          })
+          .sort({ createdAt: -1 })
+          .limit(50);
+    
+        // Récupérer les tweets contenant les hashtags les plus consultés
+        const trendingHashtags = await Tweet.aggregate([
+          { $unwind: "$hashtags" },
+          { $group: { _id: "$hashtags", count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 10 }
+        ]);
+    
+        const tweetsWithTrendingHashtags = await Tweet.find({
+          hashtags: { $in: trendingHashtags.map(tag => tag._id) }
+        })
+          .populate('author', 'username profile_img')
+          .sort({ engagementScore: -1 }) // Trier par engagement global
+          .limit(50);
+    
+        // Fusionner tous les tweets et les trier par date et engagement
+        const timelineTweets = [...followedTweets, ...likedAndRetweetedTweets.map(like => like.tweet), ...tweetsWithTrendingHashtags];
+    
+        // Supprimer les doublons et trier par engagement (likes + retweets)
+        const uniqueTweets = Array.from(new Map(timelineTweets.map(tweet => [tweet._id.toString(), tweet])).values())
+          .sort((a, b) => (b.likes.length + b.retweets.length) - (a.likes.length + a.retweets.length));
+    
+        res.json({ success: true, tweets: uniqueTweets });
+    
+      } catch (error) {
+        console.error("Erreur Timeline:", error);
+        res.status(500).json({ error: "Erreur interne du serveur" });
+      }
     }
 }
 

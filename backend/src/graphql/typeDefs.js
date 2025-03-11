@@ -40,6 +40,7 @@ const typeDefs = gql`
   }
 
   type Mutation {
+    follow(userId: ID!): FollowResponse!
     likeTweet(tweetId: ID!): LikeResponse
     createTweet(
       content: String!
@@ -54,6 +55,7 @@ const typeDefs = gql`
       ): User
     reTweet(tweetId: ID!): Tweet
     bookmarkTweet(tweetId: ID!): User
+    getTimeline: [Tweet!]!
     login(email: String!, password: String!): User
     logout: LogoutResponse!
   }
@@ -67,6 +69,11 @@ const typeDefs = gql`
     liked: Boolean!
     likes: Int!
     tweet: Tweet!
+  }
+  type FollowResponse {
+    success: Boolean!
+    following: Boolean!
+    followersCount: Int!
   }
 `;
 
