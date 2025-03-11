@@ -13,7 +13,7 @@ interface TweetProps {
 
 export default function Tweet({ username, handle, content, time, isFollowing, onFollowToggle }: TweetProps) {
   return (
-    <div className="p-4 hover:bg-gray-700 transition-colors">
+    <div className="p-4 hover:bg-gray-50 transition-colors">
       <div className="flex gap-3">
         <img
           src="/next.svg"

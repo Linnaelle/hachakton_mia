@@ -1,9 +1,36 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import {useEffect, useState} from 'react';
+import Tweet from "@/components/Tweet";
+import TweetsList from "@/components/TweetList";
+
+interface TweetData {
+    id: number;
+    username: string;
+    handle: string;
+    content: string;
+    time: string;
+    isFollowing: boolean;
+    onFollowToggle: () => void;
+}
 
 export default function ProfilePage() {
     const [activeTab, setActiveTab] = useState('posts');
+    const [tweets, setTweets] = useState<TweetData[]>([]);
+
+    useEffect(() => {
+        fetch("/tweet.json")
+            .then((response) => response.json())
+            .then((data) => {
+                setTweets(data.Yours);
+            })
+            .catch((error) => console.error("Erreur lors du chargement des tweets :", error));
+    }, []);
+
+    function handleFollow(){
+        //Why would you want to follow yourself ?
+    }
+
 
     return (
         <div className="min-h-screen bg-gray-100 text-gray-900 pt-22">
@@ -38,7 +65,11 @@ export default function ProfilePage() {
 
                 {/* Tab Content */}
                 <div className="mt-4 bg-white p-4 rounded-lg shadow-sm">
-                    {activeTab === 'posts' && <div>Post content here...</div>}
+                    {activeTab === 'posts' && (
+                        <div>
+                            <TweetsList TweetList={tweets} />
+                        </div>
+                    )}
                     {activeTab === 'liked' && <div>Liked posts here...</div>}
                     {activeTab === 'comments' && <div>Comments here...</div>}
                     {activeTab === 'saved' && <div>Saved here...</div>}
