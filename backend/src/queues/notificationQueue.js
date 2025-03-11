@@ -1,5 +1,5 @@
 const Queue = require('bull')
-const redis = require('../utils/redisClient')
+const redis = require('../config/redis')
 const { sendNotification } = require('../../controllers/notificationController')
 
 const notificationQueue = new Queue("notifications", {

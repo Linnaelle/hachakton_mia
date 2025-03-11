@@ -3,7 +3,7 @@ const dotenv = require('dotenv')
 const { ApolloServer } = require('apollo-server')
 const typeDefs = require('./src/graphql/typeDefs')
 const resolvers = require('./src/graphql/resolvers')
-const connectDB = require('./src/controllers/config/db')
+const connectDB = require('./src/config/db')
 const port = process.env.BACK_END_PORT || 5000
 
 // Connexion a la db

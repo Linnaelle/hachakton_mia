@@ -1,4 +1,4 @@
-const redis = require('../utils/redisClient')
+const redis = require('../config/redis')
 const esClient = require('../utils/elasticsearchClient')
 const { Tweet } = require('../models/tweets')
 const { generateAccessToken, verifyToken } = require('../utils/auth')

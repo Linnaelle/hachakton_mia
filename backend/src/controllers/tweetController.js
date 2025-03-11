@@ -1,8 +1,8 @@
-const notificationQueue = require('../src/queues/notificationQueue')
-const { Tweet, tweetValidation } = require('../src/models/tweets')
-const redis = require('../src/utils/redisClient')
-const { wss } = require('../src/wsServer')
-const mediaQueue = require('../src/queues/mediaQueue')
+const notificationQueue = require('../queues/notificationQueue')
+const { Tweet, tweetValidation } = require('../models/tweets')
+const redis = require('../config/redis')
+const { wss } = require('../wsServer')
+const mediaQueue = require('../queues/mediaQueue')
 
 class tweetController {
     /**

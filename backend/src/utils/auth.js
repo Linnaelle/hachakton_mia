@@ -1,7 +1,7 @@
 const dotenv = require('dotenv')
 const { User } = require('../models/users')
 const jwt = require('jsonwebtoken')
-const redis = require('redis')
+const redis = require('../config/redis')
 
 // get config vars
 dotenv.config()
