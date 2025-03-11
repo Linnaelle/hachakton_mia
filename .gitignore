@@ -1,0 +1,5 @@
+IA/dataset/
+IA/backend/venv/
+IA/frontend/.next/
+IA/frontend/node_modules/
+IA/backend/__pycache__/
