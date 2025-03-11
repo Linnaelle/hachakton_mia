@@ -45,3 +45,5 @@ const userValidation = Joi.object({
             'any.required': 'mot de passe  est requis'
     }),
 })
+
+module.exports = { User, userValidation }
