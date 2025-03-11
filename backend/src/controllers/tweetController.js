@@ -1,10 +1,11 @@
-const notificationQueue = require('../queues/notificationQueue')
+const { sendNotification, notificationQueue } = require('../queues/notificationQueue')
 const { Tweet, tweetValidation } = require('../models/tweets')
 const redis = require('../config/redis')
 const { wss } = require('../wsServer')
 const mediaQueue = require('../queues/mediaQueue')
 const ObjectId = require('mongoose').Types.ObjectId
 const { Comment, commentValidation } = require('../models/comments')
+const { Like } = require('../models/likes')
 
 class tweetController {
     /**
@@ -65,21 +66,90 @@ class tweetController {
     }
 
     static async likeTweet (req, res) {
-        const { tweetId, userId } = req.body;
-        const tweet = await Tweet.findById(tweetId);
+      try {
+        //récupère l'id du tweet depuis l'url et enlève les espaces
+        const tweetId = req.params.id.trim();
+        //récupère l'id de l'utilisateur authentifié
+        const userId = req.user.id
+        console.log(req.user)
+        //vérifier que le tweet existe
+        const tweet = await Tweet.findById(tweetId).select('likes author');;
+        if (!tweet) return res.status(404).json({ error: "Tweet non trouvé" });
 
-        if (!tweet.likes.includes(userId)) {
-            tweet.likes.push(userId);
-            await tweet.save();
+        /// Vérifier si l'utilisateur a déjà liké ce tweet
+        const existingLike = await Like.findOne({ user: userId, tweet: tweetId });
+        if (existingLike) {
+          // Si déjà liké, retirer le like (dislike)
+          await Like.deleteOne({ _id: existingLike._id });
+          tweet.likes = tweet.likes.filter(id => id.toString() !== userId);
+          await tweet.save();
+          return res.json({ success: true, liked: false, likes: tweet.likes.length })
 
-            // Ajouter une notification dans la file Bull
-            notificationQueue.add({
-            recipientId: tweet.author.toString(),
-            message: "Votre tweet a été liké !",
-            });
         }
+      
+        // Ajouter le like
+        const newLike = new Like({ user: userId, tweet: tweetId })
+        await newLike.save()
 
-        res.json(tweet);
+        tweet.likes.push(userId)
+        await tweet.save()
+        // Ajouter une notification dans la file Bull
+        // await sendNotification(tweet.author.toString(), `${user.username} a liké votre tweet!`);
+        await notificationQueue.add({
+          recipientId: tweet.author.toString(),
+          message: `${req.user.username} a liké votre tweet!`,
+        });
+
+        return res.json({ success: true, liked: true, likes: tweet.likes.length })
+
+      } catch(error) {
+        return res.status(500).json({ error: "Erreur interne du serveur" })
+      }
+
+    }
+
+    /**
+     * 
+     * @param {*} req 
+     * @param {*} res 
+     */
+    static async reTweet (req, res) {
+      // recuperer l'id du tweet de l''url et enlever espaces
+      const tweetId = req.params.id.trim()
+      // recuperer les infos de l'utilisateur authentifier
+      const user = req.user
+      console.log(user)
+
+      //vérifier que le tweet existe
+      const tweet = await Tweet.findById(tweetId)
+      console.log(tweet)
+      if (!tweet) return res.status(404).json({ error: "Tweet non trouvé" });
+
+      try {
+        const reTweet = new Tweet({
+          content: tweet.content,
+          media: tweet.media,
+          author: user.id,
+          originalTweet: tweet._id,
+          isRetweet: true,
+          mentions: tweet.mentions,
+          likes: [],
+          comments: [],
+          retweets: [],
+          hashtags: tweet.hashtags
+        })
+        await reTweet.save(); // Sauvegarde du retweet
+
+        // Ajouter le retweet à la liste des retweets de l'original
+        tweet.retweets.push(reTweet._id);
+        await tweet.save(); // Sauvegarde du tweet original
+
+        return res.status(201).json(reTweet);
+      } catch(error) {
+        return res.status(500).json({ error: "Erreur interne du serveur" });
+      }
+
+
     }
     /**
      * 
@@ -148,7 +218,7 @@ class tweetController {
 
       try {
         // check tweet exist
-          let tweet = await Tweet.findById(id)
+          const tweet = await Tweet.findById(id)
           if (!tweet){
               return res.status(404).json({message: `Aucun tweet associé à l'id ${id}`})
           }
@@ -166,7 +236,9 @@ class tweetController {
             tweet: id
           })
 
+          tweet.comments.push(newComment._id)
           await newComment.save()
+          await tweet.save()
           return res.status(200).json(newComment)
           
       } catch(error) {

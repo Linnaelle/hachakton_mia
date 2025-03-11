@@ -17,8 +17,8 @@ const userSchema = new Schema({
     timestamps: true
 })
 
-userSchema.index({ username: 1 })
-userSchema.index({ email: 1 })
+// Ajouter les index une seule fois
+userSchema.index({ username: 1 }, { unique: true })
 
 const User = mongoose.model('User', userSchema)
 

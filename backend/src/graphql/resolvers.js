@@ -10,6 +10,9 @@ const { wss } = require('../wsServer'); // Serveur WebSocket
 const { GraphQLUpload } = require('graphql-upload')
 const { User } = require("../models/users")
 const { handleUpload } = require('../utils/graphUpload')
+const { Comment } = require('../models/comments')
+const { sendNotification } = require("../queues/notificationQueue")
+const { Like } = require('../models/likes')
 
 const resolvers = {
   // On expose le scalar Upload
@@ -45,7 +48,11 @@ const resolvers = {
       }
 
       // Sinon, récupérer depuis MongoDB
-      const tweet = await Tweet.findById(id).populate("author")
+      const tweet = await Tweet.findById(id).populate('author').populate({
+        path: 'comments',
+        populate: { path: 'author' } // Récupère les auteurs des commentaires
+      })
+
       if (!tweet) throw new Error("Tweet non trouvé")
 
       // Mettre en cache avec expiration
@@ -73,7 +80,7 @@ const resolvers = {
     },
 
     getCurrentUser: async (_, __, { req }) => {
-        const user = await verifyToken(req);
+        const user = await verifyToken(req)
         if (!user) throw new Error("Non authentifié");
         return user;
     },
@@ -87,6 +94,78 @@ const resolvers = {
   },
 
   Mutation: {
+    reTweet: async (_, { tweetId }, { req }) => {
+      try {
+        // Vérifier l'authentification de l'utilisateur
+        const user = await verifyToken(req);
+        if (!user) throw new Error("Authentification requise");
+    
+        // Vérifier que le tweet existe
+        const tweet = await Tweet.findById(tweetId);
+        if (!tweet) throw new Error("Tweet non trouvé");
+    
+        // Créer un nouveau retweet
+        const reTweet = new Tweet({
+          content: tweet.content,
+          media: tweet.media,
+          author: user.id,
+          originalTweet: tweet._id,
+          isRetweet: true,
+          mentions: tweet.mentions,
+          likes: [],
+          comments: [],
+          retweets: [],
+          hashtags: tweet.hashtags,
+        });
+    
+        await reTweet.save(); // Sauvegarde du retweet
+    
+        // Ajouter l'ID du retweet au tweet original
+        tweet.retweets.push(reTweet._id);
+        await tweet.save(); // Sauvegarde du tweet original
+    
+        return reTweet;
+      } catch (error) {
+        console.error("Erreur dans reTweet:", error);
+        throw new Error("Erreur interne du serveur");
+      }
+    },
+    async likeTweet(_, { tweetId }, { req }) {
+      const user = await verifyToken(req)
+      if (!user) throw new Error("Requiert authentification")
+      const tweet = await Tweet.findById(tweetId)
+
+      if (!tweet) throw new Error("Tweet not found")
+      const userId = user.id.toString()
+
+      // Vérifier si l'utilisateur a déjà liké ce tweet
+      const existingLike = await Like.findOne({ user: userId, tweet: tweetId })
+      const alreadyLiked = tweet.likes.includes(userId)
+
+      if (existingLike) {
+         // Si déjà liké, retirer le like
+          await Like.deleteOne({ _id: existingLike._id })
+          tweet.likes = tweet.likes.filter(id => id.toString() !== userId)
+          await tweet.save()
+          return { success: true, liked: false, likes: tweet.likes.length }
+      } 
+      // Ajouter le like
+      const newLike = new Like({ user: userId, tweet: tweetId })
+      await newLike.save()
+
+      tweet.likes.push(userId)
+      await tweet.save()
+      // Queue a notification for the author
+      await sendNotification(tweet.author.toString(), `${user.username} a liké votre tweet!`)
+    
+      // return tweet
+      return {
+        success: true,
+        liked: !alreadyLiked,
+        likes: tweet.likes.length,
+        tweet: await Tweet.findById(tweetId).populate("author likes"),
+    }
+    },
     register: async (_, { username, email, password }) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new User({ username, email, password: hashedPassword });

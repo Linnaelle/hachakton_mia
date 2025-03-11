@@ -12,14 +12,12 @@ router.delete('/:id', authenticate, tweetController.deleteTweet)
 router.post('/:id/comment', authenticate, tweetController.comment)
 // recuperer un tweet et les comment associes
 router.get('/:id', tweetController.getTweet)
-  
-router.post('/:id/like', (req, res) => { res.json({msg: 'like a tweet'}) })
-router.delete('/:id/like', (req, res) => { res.json({msg: 'unlike a tweet'}) })
-router.post('/:id/retweet', (req, res) => { res.json({msg: 'retweet a tweet'}) })
+// router pour liker un tweet et unliker un tweet
+router.post('/:id/like', authenticate, tweetController.likeTweet)
+// route pour retweeter
+router.post('/:id/retweet', authenticate, tweetController.reTweet)
 // Route pour récupérer le fil d’actualité
 // router.get("/timeline", authMiddleware, getHomeTimeline)
 router.get("/timeline", (req, res) => {})
-// Route pour créer un tweet avec upload de fichier
-// router.post("/tweets", authMiddleware, upload.single("media"), createTweet);
 
 module.exports = router

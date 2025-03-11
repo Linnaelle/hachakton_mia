@@ -8,7 +8,7 @@ dotenv.config()
 
 const  generateAccessToken = (user) => {
     return jwt.sign({ id: user._id, username: user.username }, process.env.TOKEN_SECRET,
-        { expiresIn: '1800s' })
+        { expiresIn: '7200s' })
 }
 
 const verifyToken = async (req) => {

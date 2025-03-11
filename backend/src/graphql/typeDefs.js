@@ -40,13 +40,19 @@ const typeDefs = gql`
   }
 
   type Mutation {
+    likeTweet(tweetId: ID!): LikeResponse
     createTweet(
       content: String!
       media: Upload
       mentions: [ID]
       hashtags: [String]
     ): Tweet!
-    register(username: String!, email: String!, password: String!): User
+    register(
+      username: String!,
+      email: String!,
+      password: String!
+      ): User
+    reTweet(tweetId: ID!): Tweet
     login(email: String!, password: String!): User
     logout: LogoutResponse!
   }
@@ -54,6 +60,12 @@ const typeDefs = gql`
   type LogoutResponse {
     success: Boolean!
     message: String!
+  }
+  type LikeResponse {
+    success: Boolean!
+    liked: Boolean!
+    likes: Int!
+    tweet: Tweet!
   }
 `;
 
