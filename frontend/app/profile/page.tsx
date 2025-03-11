@@ -43,9 +43,8 @@ export default function ProfilePage() {
                         <p className="text-gray-600">This is a sample bio.</p>
                         <div className="mt-2 flex space-x-4 text-sm text-gray-500">
                             <span><strong>100</strong> Posts</span>
-                            <span><strong>200</strong> Comments</span>
-                            <span><strong>500</strong> Liked</span>
-                            <span><strong>200</strong> Saved</span>
+                            <span><strong>200</strong> Followers</span>
+                            <span><strong>500</strong> Following</span>
                         </div>
                     </div>
                 </div>
