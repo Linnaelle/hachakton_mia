@@ -8,11 +8,11 @@ const userSchema = new Schema({
     email: { type: String, required: true, unique: true, index: true },
     password: { type: String, required: true },
     bio: { type: String, default: '' },
-    profile_img: { type: String },
+    profile_img: { type: String }, 
     banniere_img: { type: String },
     followers: [{ type: Schema.Types.ObjectId, ref: 'User'}],
     bookmarks: [{ type: Schema.Types.ObjectId, ref: 'Tweet'}],
-
+    role: { type: String, enum: ['user', 'admin', 'debile'], default: 'user' },
 },
 {
     timestamps: true

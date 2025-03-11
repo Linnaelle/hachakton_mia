@@ -1,40 +1,67 @@
-const redis = require('../config/redis')
+const { verifyToken } = require('../services/tokenService');
+const { User } = require('../models');
 
-// Middleware pour JWT Token Validation
-const authenticate = async (req, res, next) => {
+const authenticateJWT = async (req, res, next) => {
+  try {
     const authHeader = req.headers.authorization
-
-    if (authHeader) {
-        const token = authHeader.split(' ')[1] // Bearer <token>
-        // console.log(token)
-
-        try {
-            const user = jwt.verify(token, process.env.TOKEN_SECRET)
-            if (!user) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Token invalide',
-                });
-            }
-            // const data = await redis.get(`blacklist_${token}`)
-            // Vérifier si le token est dans la liste noire
-            const isBlacklisted = await redis.get(`blacklist:${token}`)
-            if (isBlacklisted) {
-                return res.status(403).json({ message: 'Session expirée. Veuillez vous reconnecter.' })
-                throw new Error("Session expirée. Veuillez vous reconnecter.");
-            }
-            req.payload = user
-            next()
-        } catch(error){
-            return res.status(500).json({ message: `Erreur serveur. ${error}` })
-        }
-        
-    } else {
-        res.status(401).json({
-            success: false,
-            message: 'Token non fourni',
-        });
+    
+    if (!authHeader) {
+      return res.status(401).json({ message: 'Accès non autorisé. Token manquant.' })
     }
+    
+    const token = authHeader.split(' ')[1]
+  
+    const decoded = await verifyToken(token)
+    
+    const user = await User.findById(decoded.id)
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Utilisateur non trouvé.' })
+    }
+    
+    req.user = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role
+    }
+    
+    next()
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expiré.' })
+    }
+    
+    if (error.message === 'Token is blacklisted') {
+      return res.status(401).json({ message: 'Token révoqué. Veuillez vous reconnecter.' })
+    }
+    
+    return res.status(401).json({ message: 'Token invalide.' })
+  }
 }
 
-module.exports = { validateToken }
+const isDebile = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Accès non autorisé. Vous devez vous connecter.' })
+  }
+
+  if (req.user.role !== 'debile') {
+    return res.status(403).json({ message: 'Accès interdit aux gens intelligent.' })
+  }
+
+  next()
+}
+
+const isAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Accès non autorisé. Vous devez vous connecter.' })
+  }
+
+  if (req.user.role!== 'admin') {
+    return res.status(403).json({ message: 'Accès interdit aux administrateurs.' })
+  }
+
+  next()
+}
+
+module.exports = { authenticateJWT, isDebile, isAdmin }

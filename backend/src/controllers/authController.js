@@ -1,21 +1,19 @@
-const bcrypt = require('bcryptjs');
-const { User, userValidation } = require('../models');
-const tokenService = require('../services/tokenService');
+const bcrypt = require('bcryptjs')
+const { Tweet, Like, Comment, User, userValidation } = require('../models')
+const tokenService = require('../services/tokenService')
 
 /**
  * Contrôleur pour l'inscription des utilisateurs
  */
 const register = async (req, res) => {
   try {
-    // Validation des données d'entrée avec Joi
-    const { error, value } = userValidation.validate(req.body);
+    const { error, value } = userValidation.validate(req.body)
     if (error) {
-      return res.status(400).json({ message: error.details[0].message });
+      return res.status(400).json({ message: error.details[0].message })
     }
 
-    const { username, email, password } = value;
+    const { username, email, password } = value
     
-    // Vérification si l'utilisateur existe déjà
     const userExists = await User.findOne({ 
       $or: [{ email }, { username }] 
     });
@@ -26,11 +24,9 @@ const register = async (req, res) => {
       });
     }
     
-    // Hashage du mot de passe
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const salt = await bcrypt.genSalt(10)
+    const hashedPassword = await bcrypt.hash(password, salt)
     
-    // Création d'un nouvel utilisateur
     const newUser = await User.create({
       username,
       email,
@@ -42,10 +38,8 @@ const register = async (req, res) => {
       bookmarks: []
     });
     
-    // Génération des tokens avec Redis
-    const { accessToken, refreshToken } = await tokenService.generateTokens(newUser);
+    const { accessToken, refreshToken } = await tokenService.generateTokens(newUser)
     
-    // Réponse avec les tokens
     res.status(201).json({
       message: 'Utilisateur créé avec succès',
       user: {
@@ -60,8 +54,8 @@ const register = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erreur lors de l\'inscription:', error);
-    res.status(500).json({ message: 'Erreur serveur lors de l\'inscription' });
+    console.error('Erreur lors de l\'inscription:', error)
+    res.status(500).json({ message: 'Erreur serveur lors de l\'inscription' })
   }
 };
 
@@ -88,7 +82,7 @@ const login = async (req, res) => {
             return res.status(401).json({ message: 'Email ou mot de passe incorrect' })
         }
         
-        const { accessToken, refreshToken } = await tokenService.generateTokens(user);
+        const { accessToken, refreshToken } = await tokenService.generateTokens(user)
         
         res.status(200).json({
         message: 'Connexion réussie',
@@ -114,9 +108,9 @@ const login = async (req, res) => {
  */
 const logout = async (req, res) => {
     try {
-        const token = req.headers.authorization.split(' ')[1];
+        const token = req.headers.authorization.split(' ')[1]
         
-        await tokenService.blacklistToken(token);
+        await tokenService.blacklistToken(token)
         
         await tokenService.revokeAllUserTokens(req.user.id)
         
@@ -192,5 +186,5 @@ module.exports = {
     login,
     logout,
     getMe,
-    refreshToken
-};
+    refreshToken,
+}
