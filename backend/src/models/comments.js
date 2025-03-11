@@ -22,12 +22,8 @@ const commentValidation = Joi.object({
     .messages({
         'string.base': 'Commentaire doit être une chaine',
         'string.empty': 'Commentaire ne peut pas être vide',
-        'any.required': 'Comment est requis'
-    }),
-    author: Joi.string()
-    .required(),
-    tweet: Joi.string()
-    .required()
+        'any.required': 'Commentaire est requis'
+    })
 })
 
 module.exports = { Comment, commentValidation }

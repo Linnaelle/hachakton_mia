@@ -1,4 +1,5 @@
 const redis = require('../config/redis')
+const jwt = require('jsonwebtoken')
 
 // Middleware pour JWT Token Validation
 const authenticate = async (req, res, next) => {
@@ -23,7 +24,7 @@ const authenticate = async (req, res, next) => {
                 return res.status(403).json({ message: 'Session expirée. Veuillez vous reconnecter.' })
                 throw new Error("Session expirée. Veuillez vous reconnecter.");
             }
-            req.payload = user
+            req.user = user
             next()
         } catch(error){
             return res.status(500).json({ message: `Erreur serveur. ${error}` })
@@ -37,4 +38,4 @@ const authenticate = async (req, res, next) => {
     }
 }
 
-module.exports = { validateToken }
+module.exports = { authenticate }

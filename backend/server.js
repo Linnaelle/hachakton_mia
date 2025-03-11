@@ -5,6 +5,7 @@ const typeDefs = require('./src/graphql/typeDefs')
 const resolvers = require('./src/graphql/resolvers')
 const connectDB = require('./src/config/db')
 const port = process.env.BACK_END_PORT || 5000
+const redis = require('./src/config/redis')
 
 // Connexion a la db
 connectDB()
@@ -16,7 +17,7 @@ app.listen(port, () => {
 const server = new ApolloServer({
     typeDefs,
     resolvers,
-    context: ({ req }) => ({ req }),  // Permet d'ajouter le contexte (ex: utilisateur)
+    context: ({ req }) => ({ req })
 });
 
 server.listen().then(({ url }) => {

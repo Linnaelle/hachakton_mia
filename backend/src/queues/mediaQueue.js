@@ -1,6 +1,6 @@
 const Queue = require('bull')
 
-export const mediaQueue = new Queue("media-processing", {
+const mediaQueue = new Queue("media-processing", {
   redis: { host: "127.0.0.1", port: 6379 },
 });
 
@@ -13,3 +13,5 @@ mediaQueue.process(async (job) => {
 
   console.log(`✅ Média traité : ${job.data.filePath}`);
 });
+
+module.exports = mediaQueue

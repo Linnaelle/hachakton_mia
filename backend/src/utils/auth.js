@@ -16,7 +16,12 @@ const verifyToken = async (req) => {
     if (!authHeader) return null
   
     const token = authHeader.split(" ")[1]
-    console.log(authHeader)
+    // console.log(token)
+    // Vérifier si le token est dans la liste noire
+    const isBlacklisted = await redis.get(`blacklist:${token}`);
+    if (isBlacklisted) {
+        throw new Error("Session expirée. Veuillez vous reconnecter.");
+    }
     try {
       const decoded = jwt.verify(token, process.env.TOKEN_SECRET)
       const user = await User.findById(decoded.id)

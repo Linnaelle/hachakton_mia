@@ -3,10 +3,39 @@ const esClient = require('../utils/elasticsearchClient')
 const { Tweet } = require('../models/tweets')
 const { generateAccessToken, verifyToken } = require('../utils/auth')
 const bcrypt = require('bcryptjs')
-const { User } = require('../models/users')
+const fs = require('fs')
+const path = require('path')
+const mediaQueue = require('../queues/mediaQueue') // File d'attente Bull pour les médias
+const { wss } = require('../wsServer'); // Serveur WebSocket
+const { GraphQLUpload } = require('graphql-upload')
+const { User } = require("../models/users")
+const { handleUpload } = require('../utils/graphUpload')
 
 const resolvers = {
+  // On expose le scalar Upload
+  Upload: GraphQLUpload,
+
   Query: {
+    getUserTweets: async(_, { userId }) => {
+      try {
+        const tweets = await Tweet.find({ author: userId }).populate("author");
+        return tweets;
+      } catch (error) {
+        throw new Error("Erreur lors de la récupération des tweets.");
+      }
+    },
+    getTimeline: async (_, __, { req }) => {
+      // Vérifie l’authentification
+      const user = await verifyToken(req);
+      if (!user) throw new Error("Non authentifié");
+      // console.log(user)
+      // Récupérer les tweets les plus récents
+      const tweets = await Tweet.find().sort({ createdAt: -1 })
+      .populate("author", "_id username");
+
+      console.log(tweets)
+      return tweets
+    },
     getTweet: async (_, { id }) => {
       // Vérifier si le tweet est en cache
       const cachedTweet = await redis.get(`tweet:${id}`)
@@ -47,6 +76,13 @@ const resolvers = {
         const user = await verifyToken(req);
         if (!user) throw new Error("Non authentifié");
         return user;
+    },
+    // getUserTweets(userId: ID!): [Tweet!]!
+  },
+  //PERMET DE RECUP TOUS LES TWEETS ASSOCIES QUAND ON QUERY UN USER
+  User: {
+    async tweets(parent) {
+      return await Tweet.find({ author: parent.id });
     },
   },
 
@@ -89,24 +125,68 @@ const resolvers = {
       }
     },
 
-    createTweet: async (_, { content }, context) => {
-        const user = await verifyToken(context.req)
-        if (!user) throw new Error("Non authentifié")
+    // createTweetOld: async (_, { content }, context) => {
+    //     const user = await verifyToken(context.req)
+    //     if (!user) throw new Error("Non authentifié")
 
-        const tweet = new Tweet({ content, author: user.id })
-        await tweet.save()
+    //     const tweet = new Tweet({ content, author: user.id })
+    //     await tweet.save()
 
-        await esClient.index({
-            index: "tweets",
-            id: tweet._id.toString(),
-            body: { content, author: tweet.author },
-        })
+    //     await esClient.index({
+    //         index: "tweets",
+    //         id: tweet._id.toString(),
+    //         body: { content, author: tweet.author },
+    //     })
 
-        await redis.keys("search:*").then((keys) => {
-            if (keys.length) redis.del(...keys)
-        })
+    //     await redis.keys("search:*").then((keys) => {
+    //         if (keys.length) redis.del(...keys)
+    //     })
 
-        return tweet
+    //     return tweet
+    // },
+    createTweet: async (_, { content, media, mentions, hashtags }, { req }) => {
+      // Vérifier l'authentification (le middleware doit ajouter req.user)
+      // Vérifie l'authentification
+      const user = await verifyToken(req)
+      if (!user) throw new Error("Non authentifié");
+      console.log("Utilisateur authentifié:", user.id);
+      console.log("Content reçu:", content);
+    
+      if (!content || content.trim() === "") {
+        throw new Error("Le contenu du tweet ne peut pas être vide.");
+      }
+      let mediaUrl = null;
+
+      // Si un fichier média est fourni, le traiter
+      if (media) {
+        mediaUrl = await handleUpload(media)
+        // Ajouter le média à la file d'attente pour traitement asynchrone
+        await mediaQueue.add({ filePath: mediaUrl });
+      }
+
+      // Convertir les hashtags en minuscules (si présents)
+      const tweetHashtags = hashtags ? hashtags.map(tag => tag.toLowerCase()) : [];
+
+      // Créer le tweet dans la base
+      const tweet = new Tweet({
+        content,
+        media: mediaUrl,
+        author: user.id,
+        mentions,
+        hashtags: tweetHashtags,
+      });
+      await tweet.save();
+
+      // Envoyer une notification via WebSocket à tous les clients connectés
+      const payload = JSON.stringify({
+        type: "NEW_TWEET",
+        tweetId: tweet._id,
+        content: tweet.content,
+        author: user.id,
+      });
+      wss.clients.forEach(client => client.send(payload));
+
+      return tweet;
     },
   },
 }

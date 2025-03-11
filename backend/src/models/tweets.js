@@ -5,7 +5,7 @@ const Joi = require('joi')
 const tweetSchema = new Schema({
     content: { type: String, required: true, maxlength: 280},
     media: { type: String },
-    author: [{ type: Schema.Types.ObjectId, ref: 'User'}],
+    author: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     originalTweet: { type: Schema.Types.ObjectId, ref: 'Tweet'},
     isRetweet: { type: Boolean, default: false },
     mentions: [{ type: Schema.Types.ObjectId, ref: "User" }], // Utilisateurs mentionnés (@)
@@ -21,7 +21,7 @@ const tweetSchema = new Schema({
 tweetSchema.index({ author: 1 })
 tweetSchema.index({ isRetweet: 1 })
 tweetSchema.index({ createdAt: -1 })
-tweetSchema.index({ content: "text", hashtags: 1 }) // Indexation full-text + hashtags
+tweetSchema.index({ content: "text" })
 
 const Tweet = mongoose.model('Tweet', tweetSchema)
 
@@ -32,7 +32,8 @@ const tweetValidation = Joi.object({
         'string.base': 'Contenu doit être une chaine',
         'string.empty': 'Contenu ne peut pas être vide',
         'any.required': 'Contenu est requis'
-    })
+    }),
+    hashtags: Joi.array()
 })
 
 module.exports = { Tweet, tweetValidation }
