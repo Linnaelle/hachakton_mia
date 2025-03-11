@@ -1,0 +1,35 @@
+{
+    "forYou": [
+      {
+        "username": "Tech News",
+        "handle": "@technews",
+        "content": "New AI breakthrough in healthcare.",
+        "time": "1h",
+        "isFollowing": false
+      },
+      {
+        "username": "Startup Tips",
+        "handle": "@startuptips",
+        "content": "10 lessons from building a SaaS.",
+        "time": "5h",
+        "isFollowing": false
+      }
+    ],
+    "following": [
+      {
+        "username": "Elon Musk",
+        "handle": "@elonmusk",
+        "content": "Starship launch attempt soon! 🚀",
+        "time": "2h",
+        "isFollowing": true
+      },
+      {
+        "username": "React Dev",
+        "handle": "@reactjs",
+        "content": "Just released React 19 beta!",
+        "time": "4h",
+        "isFollowing": true
+      }
+    ]
+  }
+  
