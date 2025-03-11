@@ -1,4 +1,5 @@
 const { User, userValidation } = require("../models/users")
+const { Tweet } = require('../models/tweets')
 const ObjectId = require('mongoose').Types.ObjectId
 const bcrypt = require('bcryptjs')
 
@@ -73,6 +74,43 @@ class userController {
             res.status(500).json({ message: 'Internal server error' });
         }
 
+    }
+
+    static async bookmarkTweet(req, res) {
+        try {
+          const userId = req.user.id;
+          const { tweetId } = req.params;
+      
+          // Vérifier si le tweet existe
+          const tweet = await Tweet.findById(tweetId);
+          if (!tweet) return res.status(404).json({ error: "Tweet non trouvé" });
+      
+          // Récupérer l'utilisateur
+          const user = await User.findById(userId);
+      
+          // Vérifier si le tweet est déjà enregistré
+          const isBookmarked = user.bookmarks.includes(tweetId);
+          if (isBookmarked) {
+            user.bookmarks = user.bookmarks.filter(id => id.toString() !== tweetId);
+          } else {
+            user.bookmarks.push(tweetId);
+          }
+      
+          await user.save();
+          res.json({ success: true, bookmarks: user.bookmarks });
+      
+        } catch (error) {
+          console.error("Erreur Signet:", error);
+          res.status(500).json({ error: "Erreur interne du serveur" });
+        }
+    }
+
+    static async follow(req, res) {
+
+    }
+
+    static async userTimeline(req, res) {
+        
     }
 }
 

@@ -151,14 +151,6 @@ class tweetController {
 
 
     }
-    /**
-     * 
-     * @param {*} req 
-     * @param {*} res 
-     */
-    static async getHomeTimeline (req, res) {
-
-    }
 
     /**
      * 
@@ -253,9 +245,13 @@ class tweetController {
      * @param {*} res 
      */
 
-     static async getTweet (req, res) {
+    static async getTweet (req, res) {
       const tweets = await Tweet.find()
-      res.status(200).json(tweets);
+      res.status(200).json(tweets)
+    }
+
+
+    static async getTimeline(req, res) {
     }
 }
 

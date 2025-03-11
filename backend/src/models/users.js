@@ -10,6 +10,7 @@ const userSchema = new Schema({
     profile_img: { type: String }, //url ou chemin de l'image
     banniere_img: { type: String }, //url ou chemin de l'image,
     followers: [{ type: Schema.Types.ObjectId, ref: 'User'}],
+    followings: [{ type: Schema.Types.ObjectId, ref: 'User'}],
     bookmarks: [{ type: Schema.Types.ObjectId, ref: 'Tweet'}],
 
 },

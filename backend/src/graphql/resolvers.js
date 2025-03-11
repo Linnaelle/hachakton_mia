@@ -94,6 +94,25 @@ const resolvers = {
   },
 
   Mutation: {
+    bookmarkTweet: async (_, { tweetId }, { req }) => {
+      const user = await verifyToken(req);
+      if (!user) throw new Error("Authentification requise");
+    
+      // Vérifier si le tweet existe
+      const tweet = await Tweet.findById(tweetId);
+      if (!tweet) throw new Error("Tweet non trouvé");
+    
+      // Ajouter ou retirer le tweet des signets
+      const isBookmarked = user.bookmarks.includes(tweetId);
+      if (isBookmarked) {
+        user.bookmarks = user.bookmarks.filter(id => id.toString() !== tweetId);
+      } else {
+        user.bookmarks.push(tweetId);
+      }
+    
+      await user.save();
+      return user;
+    },
     reTweet: async (_, { tweetId }, { req }) => {
       try {
         // Vérifier l'authentification de l'utilisateur

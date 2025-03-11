@@ -53,6 +53,7 @@ const typeDefs = gql`
       password: String!
       ): User
     reTweet(tweetId: ID!): Tweet
+    bookmarkTweet(tweetId: ID!): User
     login(email: String!, password: String!): User
     logout: LogoutResponse!
   }

@@ -18,6 +18,6 @@ router.post('/:id/like', authenticate, tweetController.likeTweet)
 router.post('/:id/retweet', authenticate, tweetController.reTweet)
 // Route pour récupérer le fil d’actualité
 // router.get("/timeline", authMiddleware, getHomeTimeline)
-router.get("/timeline", (req, res) => {})
+router.get("/timeline", authenticate, tweetController.getTimeline)
 
 module.exports = router
