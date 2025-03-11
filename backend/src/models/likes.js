@@ -1,34 +1,29 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const Joi =  require('joi')
+const objectId = require('../utils/joiObjectId')
 
 const likeSchema = new Schema({
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    tweet: { type: Schema.Types.ObjectId, ref: 'Tweet', required: true }, // Retweet references
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    tweet: { type: Schema.Types.ObjectId, ref: 'Tweet', required: true, index: true },
 },
 {
     timestamps: true
 })
 
-likeSchema.index({ user: 1, tweet: 1 })
-
 const Like = mongoose.model('Like', likeSchema)
 
 const likeValidation = Joi.object({
-    user: Joi.string()
-    .required()
-    .messages({
-            'string.base': 'User doit être un id objet',
-            'string.empty': 'User ne peut pas être vide',
-            'any.required': 'User est requis'
-        }),
-    tweet: Joi.string()
-    .required()
-    .messages({
-        'string.base': 'Tweet doit être un id objet',
-        'string.empty': 'Tweet ne peut pas être vide',
-        'any.required': 'Tweet est requis'
+    user: objectId.required()
+        .messages({
+            'any.required': 'Utilisateur est requis',
+            'any.invalid': 'ID d\'utilisateur invalide'
     }),
+    tweet: objectId.required()
+        .messages({
+            'any.required': 'Tweet est requis',
+            'any.invalid': 'ID du tweet invalide'
+    })
 })
 
 module.exports = { Like, likeValidation }
