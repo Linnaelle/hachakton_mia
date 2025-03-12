@@ -32,7 +32,12 @@ const resolvers = {
         if (!authenticatedUser) {
           throw new Error("User not found");
         }
-    
+         // Récupérer les infos de l'utilisateur depuis la DB
+        const userData = await User.findById(user.id)
+
+        if (!userData) {
+          throw new Error("Utilisateur introuvable");
+        }
         // Fetch tweets authored by the user
         const tweets = await Tweet.find({ author: user.id })
           .populate("author", "username profile_img") // Populate author details
@@ -50,6 +55,7 @@ const resolvers = {
           .exec();
     
         return {
+          user: userData,
           tweets,
           comments,
           likedTweets,
@@ -172,12 +178,12 @@ const resolvers = {
     },
     // getUserTweets(userId: ID!): [Tweet!]!
   },
-  //PERMET DE RECUP TOUS LES TWEETS ASSOCIES QUAND ON QUERY UN USER
-  User: {
-    async tweets(parent) {
-      return await Tweet.find({ author: parent.id });
-    },
-  },
+  // //PERMET DE RECUP TOUS LES TWEETS ASSOCIES QUAND ON QUERY UN USER
+  // User: {
+  //   async tweets(parent) {
+  //     return await Tweet.find({ author: parent.id });
+  //   },
+  // },
 
   Mutation: {
     follow: async (_, { userId }, { req }) => {
