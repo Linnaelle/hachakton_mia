@@ -1,15 +1,39 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import {useState} from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAppContext } from '../context/appContext';
 
 export default function Header() {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [user, setUser] = useState({isLoggedIn: true, profilePic: '/placeholder-profile.jpg'});
+    const { appState, setUser } = useAppContext();
+    const router = useRouter();
 
-    function logOut() {
-        setUser({isLoggedIn: false, profilePic: '/placeholder-profile.jpg'});
+    async function logOut() {
+        // Clear app context
+        setUser(null, null);
+
+        // Call logout route
+        try {
+            const res = await fetch('http://localhost:5000/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.message || 'Registration failed');
+        }
+    } catch (err) {
+        console.log(err)
+    }
+        // Close the menu dropdown
         setMenuOpen(false);
+
+        // Redirect to home page
+        router.push('/');
     }
 
     return (
@@ -28,21 +52,42 @@ export default function Header() {
 
             {/* Profile Dropdown */}
             <div className="relative">
-                {user.isLoggedIn ? (
+                {appState.isLoggedIn ? (
                     <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center space-x-3">
-                        <img src={user.profilePic} alt="Profile" className="w-12 h-12 rounded-full border-2 border-gray-300 shadow-md" />
+                        {appState.user?.profile_pic ? (
+                            <img
+                                src={appState.user.profile_pic}
+                                alt="Profile"
+                                className="w-12 h-12 rounded-full border-2 border-gray-300 shadow-md"
+                            />
+                        ) : (
+                            <div className="w-12 h-12 rounded-full border-2 border-gray-300 shadow-md bg-blue-500 flex items-center justify-center text-white font-bold">
+                                {appState.user?.username?.charAt(0).toUpperCase() || 'U'}
+                            </div>
+                        )}
                     </button>
                 ) : (
                     <div className="flex space-x-4">
                         <Link href="/login" className="text-blue-300 font-semibold">Log In</Link>
-                        <Link href="/signup" className=" text-blue-600 font-semibold">Sign Up</Link>
+                        <Link href="/signup" className="text-blue-600 font-semibold">Sign Up</Link>
                     </div>
                 )}
 
                 {menuOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
-                        <Link href="/profile" className="block px-4 py-2 text-black hover:bg-gray-100">Profile</Link>
-                        <button className="block w-full text-left text-black px-4 py-2 hover:bg-gray-100 hover:cursor-pointer" onClick={() => logOut()}>Logout</button>
+                        <Link
+                            href="/profile"
+                            className="block px-4 py-2 text-black hover:bg-gray-100"
+                            onClick={() => setMenuOpen(false)}
+                        >
+                            Profile
+                        </Link>
+                        <button
+                            className="block w-full text-left text-black px-4 py-2 hover:bg-gray-100 hover:cursor-pointer"
+                            onClick={logOut}
+                        >
+                            Logout
+                        </button>
                     </div>
                 )}
             </div>
