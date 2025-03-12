@@ -1,19 +1,75 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import {useEffect, useState} from 'react';
+import { useAppContext } from '../context/appContext';
+import {useRouter} from "next/navigation";
+
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
 
-    const handleSubmit = (e) => {
+    const router = useRouter();
+    const { appState, setUser, isLoading, setIsLoading } = useAppContext();
+
+    useEffect(() => {
+        if (appState.isLoggedIn) {
+            router.push('/');
+        }
+    }, [appState.isLoggedIn, router]);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Form validation
         if (!email || !password) {
             setErrorMessage('Please fill in both fields');
             return;
         }
+
+        setIsLoading(true);
         setErrorMessage('');
+
+        try {
+            // Make a POST request to the login endpoint
+            const response = await fetch('http://localhost:5000/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // Handle error response
+                setErrorMessage(data.message || 'Login failed. Please try again.');
+                return;
+            }
+
+            // Handle successful login using the AppContext
+            if (data.user && data.tokens) {
+                // Update the AppContext with user data and token
+                setUser(data.user, data.tokens.accessToken);
+
+                // No need to manually set localStorage as your AppContext already handles that
+                // in the useEffect that runs when appState changes
+
+                // Use the router for navigation instead of directly changing window.location
+                // for better Next.js integration
+                router.push('/');
+            } else {
+                setErrorMessage('Invalid response from server');
+            }
+
+        } catch (error) {
+            console.error('Login error:', error);
+            setErrorMessage('An error occurred during login. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -59,8 +115,9 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         className="w-full py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition duration-200"
+                        disabled={isLoading}
                     >
-                        Login
+                        {isLoading ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
 
