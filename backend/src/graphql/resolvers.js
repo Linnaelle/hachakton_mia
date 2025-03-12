@@ -19,12 +19,29 @@ const resolvers = {
   Upload: GraphQLUpload,
 
   Query: {
+    userTimeline: async (_, __, { req }) => {
+      const user = await verifyToken(req)
+      if (!user) throw new Error("Authentification requise")
+
+      const authenticatedUser = await User.findById(user.id)
+        .populate("tweets")
+        .populate("comments")
+        .populate("likedTweets")
+        .populate("bookmarks");
+
+      return {
+        tweets: authenticatedUser.tweets,
+        comments: authenticatedUser.comments,
+        likedTweets: authenticatedUser.likedTweets,
+        bookmarks: authenticatedUser.bookmarks,
+      };
+    },
     getTimeline: async (_, __, { req }) => {
-      const currentUser = await verifyToken(req);
-      if (!currentUser) throw new Error("Authentification requise");
+      const currentUser = await verifyToken(req)
+      if (!currentUser) throw new Error("Authentification requise")
     
       const user = await User.findById(currentUser.id).select('followings bookmarks');
-      if (!user) throw new Error("Utilisateur introuvable");
+      if (!user) throw new Error("Utilisateur introuvable")
     
       // Récupérer les tweets des abonnements
       const followedTweets = await Tweet.find({ author: { $in: user.followings } })

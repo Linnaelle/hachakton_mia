@@ -35,7 +35,7 @@ const typeDefs = gql`
     getTweet(id: ID!): Tweet
     searchTweets(query: String!): [Tweet]
     getCurrentUser: User
-    getTimeline: [Tweet!]!
+    userTimeline: Timeline!
     getUserTweets(userId: ID!): [Tweet!]!
   }
 
@@ -74,6 +74,12 @@ const typeDefs = gql`
     success: Boolean!
     following: Boolean!
     followersCount: Int!
+  }
+  type Timeline {
+    tweets: [Tweet!]!
+    comments: [Comment!]!
+    likedTweets: [Tweet!]!
+    bookmarks: [Tweet!]!
   }
 `;
 
