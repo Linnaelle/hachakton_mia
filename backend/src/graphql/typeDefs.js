@@ -36,6 +36,7 @@ const typeDefs = gql`
     searchTweets(query: String!): [Tweet]
     getCurrentUser: User
     userTimeline: Timeline!
+    getTimeline: [Tweet!]!
     getUserTweets(userId: ID!): [Tweet!]!
   }
 
@@ -55,7 +56,6 @@ const typeDefs = gql`
       ): User
     reTweet(tweetId: ID!): Tweet
     bookmarkTweet(tweetId: ID!): User
-    getTimeline: [Tweet!]!
     login(email: String!, password: String!): User
     logout: LogoutResponse!
   }

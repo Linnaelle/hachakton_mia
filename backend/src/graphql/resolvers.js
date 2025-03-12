@@ -23,18 +23,42 @@ const resolvers = {
       const user = await verifyToken(req)
       if (!user) throw new Error("Authentification requise")
 
-      const authenticatedUser = await User.findById(user.id)
-        .populate("tweets")
-        .populate("comments")
-        .populate("likedTweets")
-        .populate("bookmarks");
-
-      return {
-        tweets: authenticatedUser.tweets,
-        comments: authenticatedUser.comments,
-        likedTweets: authenticatedUser.likedTweets,
-        bookmarks: authenticatedUser.bookmarks,
-      };
+      try {
+        // Fetch the authenticated user
+        const authenticatedUser = await User.findById(user.id)
+          .populate("bookmarks") // Populate bookmarked tweets
+          .exec();
+    
+        if (!authenticatedUser) {
+          throw new Error("User not found");
+        }
+    
+        // Fetch tweets authored by the user
+        const tweets = await Tweet.find({ author: user.id })
+          .populate("author", "username profile_img") // Populate author details
+          .populate("comments") // Populate comments on the tweet
+          .exec();
+    
+        // Fetch comments made by the user
+        const comments = await Comment.find({ author: user.id })
+          .populate("tweet", "content author") // Include tweet details in comments
+          .exec();
+    
+        // Fetch tweets liked by the user
+        const likedTweets = await Tweet.find({ likes: user.id })
+          .populate("author", "username profile_img")
+          .exec();
+    
+        return {
+          tweets,
+          comments,
+          likedTweets,
+          bookmarks: authenticatedUser.bookmarks, // Already populated bookmarks
+        };
+      } catch (error) {
+        console.error("Error fetching user timeline:", error);
+        throw new Error("Internal Server Error");
+      }
     },
     getTimeline: async (_, __, { req }) => {
       const currentUser = await verifyToken(req)
