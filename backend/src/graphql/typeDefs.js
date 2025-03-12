@@ -29,7 +29,11 @@ const typeDefs = gql`
     username: String!
     email: String!
     token: String
-    tweets: [Tweet]
+    bio: String
+    profile_img: String
+    banniere_img: String
+    followers: [String]
+
   }
 
   type Query {
@@ -77,6 +81,7 @@ const typeDefs = gql`
     followersCount: Int!
   }
   type Timeline {
+    user: User!
     tweets: [Tweet!]!
     comments: [Comment!]!
     likedTweets: [Tweet!]!
