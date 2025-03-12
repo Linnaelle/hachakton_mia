@@ -1,7 +1,8 @@
 ﻿'use client';
 
-import {useEffect, useState} from 'react';
-import Tweet from "@/components/Tweet";
+import { useEffect, useState } from 'react';
+import { PencilIcon } from '@heroicons/react/24/outline';
+import Link from 'next/link';
 import TweetsList from "@/components/TweetList";
 
 interface TweetData {
@@ -27,31 +28,40 @@ export default function ProfilePage() {
             .catch((error) => console.error("Erreur lors du chargement des tweets :", error));
     }, []);
 
-    function handleFollow(){
+    function handleFollow() {
         //Why would you want to follow yourself ?
     }
-
 
     return (
         <div className="min-h-screen bg-gray-100 text-gray-900 pt-22">
             <div className="max-w-4xl mx-auto p-4">
                 {/* Profile Header */}
-                <div className="bg-white p-6 rounded-lg shadow-md flex items-center space-x-6">
-                    <img src="/placeholder-profile.jpg" alt="Profile" className="w-20 h-20 rounded-full" />
-                    <div>
-                        <h1 className="text-xl font-bold">Username</h1>
-                        <p className="text-gray-600">This is a sample bio.</p>
-                        <div className="mt-2 flex space-x-4 text-sm text-gray-500">
-                            <span><strong>100</strong> Posts</span>
-                            <span><strong>200</strong> Followers</span>
-                            <span><strong>500</strong> Following</span>
+                <div className="relative bg-white p-6 rounded-lg shadow-md">
+                    {/* Edit Profile Button in Top-Right Corner */}
+                    <Link href="/editProfile">
+                        <button className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 transition">
+                            <PencilIcon className="w-6 h-6 text-gray-600" />
+                        </button>
+                    </Link>
+
+                    {/* Profile Info */}
+                    <div className="flex items-center space-x-6">
+                        <img src="/placeholder-profile.jpg" alt="Profile" className="w-20 h-20 rounded-full" />
+                        <div>
+                            <h1 className="text-xl font-bold">Username</h1>
+                            <p className="text-gray-600">This is a sample bio.</p>
+                            <div className="mt-2 flex space-x-4 text-sm text-gray-500">
+                                <span><strong>100</strong> Posts</span>
+                                <span><strong>200</strong> Followers</span>
+                                <span><strong>500</strong> Following</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Tabs */}
                 <div className="mt-4 flex space-x-4 border-b">
-                    {['posts', 'comments', 'liked', 'saved'].map(tab => (
+                    {['posts', 'comments', 'liked'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -71,7 +81,6 @@ export default function ProfilePage() {
                     )}
                     {activeTab === 'liked' && <div>Liked posts here...</div>}
                     {activeTab === 'comments' && <div>Comments here...</div>}
-                    {activeTab === 'saved' && <div>Saved here...</div>}
                 </div>
             </div>
         </div>
