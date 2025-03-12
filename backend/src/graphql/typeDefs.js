@@ -11,6 +11,7 @@ const typeDefs = gql`
     mentions: [User]
     likes: [User]
     comments: [Comment]
+    isRetweet: Boolean
     retweets: [Tweet]
     hashtags: [String]
     createdAt: String!
