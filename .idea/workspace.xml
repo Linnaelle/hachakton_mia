@@ -5,12 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="77d84cb1-ed73-4667-bdfb-bd3a4380c429" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/frontend/app/context/appContext.tsx" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/app/type/user.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/app/components/header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/components/header.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/app/login/page.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/login/page.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/app/signup/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/signup/page.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,7 +51,7 @@
       <recent name="D:\AAATravail\hachakton_mia\backend" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.front">
+  <component name="RunManager" selected="npm.back">
     <configuration name="back" type="js.build_tools.npm" temporary="true">
       <package-json value="$PROJECT_DIR$/backend/package.json" />
       <command value="run" />
@@ -82,8 +78,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="npm.front" />
         <item itemvalue="npm.back" />
+        <item itemvalue="npm.front" />
       </list>
     </recent_temporary>
   </component>

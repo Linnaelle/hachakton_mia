@@ -3,9 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { useAppContext } from '../context/appContext';
 
 export default function SignupPage() {
     const router = useRouter();
+    const { setUser } = useAppContext();
+
 
     // User Signup State
     const [profile, setProfile] = useState({
@@ -37,6 +40,17 @@ export default function SignupPage() {
             const data = await res.json();
             if (!res.ok) {
                 throw new Error(data.message || 'Registration failed');
+            }
+
+            if (data.user && data.tokens) {
+                setUser(data.user, data.tokens.accessToken);
+
+                // No need to manually set localStorage as  AppContext already handles that
+                // in the useEffect that runs when appState changes
+
+                router.push('/');
+            } else {
+                setErrorMessage('Invalid response from server');
             }
 
             router.push('/profile');

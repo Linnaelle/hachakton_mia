@@ -44,21 +44,15 @@ export default function LoginPage() {
             const data = await response.json();
 
             if (!response.ok) {
-                // Handle error response
                 setErrorMessage(data.message || 'Login failed. Please try again.');
                 return;
             }
 
-            // Handle successful login using the AppContext
             if (data.user && data.tokens) {
-                // Update the AppContext with user data and token
                 setUser(data.user, data.tokens.accessToken);
 
-                // No need to manually set localStorage as your AppContext already handles that
+                // No need to manually set localStorage as  AppContext already handles that
                 // in the useEffect that runs when appState changes
-
-                // Use the router for navigation instead of directly changing window.location
-                // for better Next.js integration
                 router.push('/');
             } else {
                 setErrorMessage('Invalid response from server');
