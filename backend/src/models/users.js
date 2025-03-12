@@ -1,7 +1,6 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const Joi =  require('joi')
-const objectId = require('../utils/joiObjectId')
 
 const userSchema = new Schema({
     username: { type: String, required: true, unique: true, index: true },
@@ -14,6 +13,11 @@ const userSchema = new Schema({
     followings: [{ type: Schema.Types.ObjectId, ref: 'User'}],
     bookmarks: [{ type: Schema.Types.ObjectId, ref: 'Tweet'}],
     role: { type: String, enum: ['user', 'admin', 'debile'], default: 'user' },
+    isEmailVerified: { type: Boolean, default: false },
+    verificationToken: { type: String },
+    verificationTokenExpires: { type: Date },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date }
 },
 {
     timestamps: true
