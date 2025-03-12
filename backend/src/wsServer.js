@@ -1,5 +1,6 @@
-import WebSocket, { WebSocketServer } from "ws";
-import http from "http";
+const { WebSocketServer } = require('ws')
+const WebSocket = require('ws')
+const http = require('http')
 
 const server = http.createServer();
 const wss = new WebSocketServer({ server });

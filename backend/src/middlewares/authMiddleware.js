@@ -10,6 +10,7 @@ const authenticateJWT = async (req, res, next) => {
     }
     
     const token = authHeader.split(' ')[1]
+    console.log(token)
   
     const decoded = await verifyToken(token)
     

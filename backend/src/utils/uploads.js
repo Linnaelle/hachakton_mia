@@ -1,6 +1,15 @@
 const multer = require('multer')
 const path = require('path')
+const fs = require('fs')
+const dotenv = require('dotenv')
 
+dotenv.config()
+
+// Vérifier et créer le dossier "uploads/"
+const uploadDir = "uploads/";
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 // Configuration de stockage pour Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -20,6 +29,8 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ storage, fileFilter });
+const upload = multer({ storage, fileFilter })
 
-module.exports = upload
+
+
+module.exports = { upload }

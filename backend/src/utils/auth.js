@@ -7,8 +7,8 @@ const redis = require('../config/redis')
 dotenv.config()
 
 const  generateAccessToken = (user) => {
-    return jwt.sign({ id: user._id, username: user.username }, process.env.TOKEN_SECRET,
-        { expiresIn: '1800s' })
+    return jwt.sign({ id: user._id, username: user.username }, process.env.JWT_SECRET,
+        { expiresIn: '7200s' })
 }
 
 const verifyToken = async (req) => {
@@ -16,9 +16,14 @@ const verifyToken = async (req) => {
     if (!authHeader) return null
   
     const token = authHeader.split(" ")[1]
-    console.log(authHeader)
+    // console.log(token)
+    // Vérifier si le token est dans la liste noire
+    const isBlacklisted = await redis.get(`blacklist:${token}`);
+    if (isBlacklisted) {
+        throw new Error("Session expirée. Veuillez vous reconnecter.");
+    }
     try {
-      const decoded = jwt.verify(token, process.env.TOKEN_SECRET)
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
       const user = await User.findById(decoded.id)
       return user;
     } catch (err) {

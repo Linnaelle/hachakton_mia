@@ -21,17 +21,17 @@ const commentValidation = Joi.object({
             'string.empty': 'Commentaire ne peut pas être vide',
             'string.max': 'Commentaire ne peut pas dépasser {#limit} caractères',
             'any.required': 'Commentaire est requis'
-    }),
-    author: objectId.required()
-        .messages({
-            'any.required': 'Auteur est requis',
-            'any.invalid': 'ID d\'auteur invalide'
-    }),
-    tweet: objectId.required()
-        .messages({
-            'any.required': 'Tweet est requis',
-            'any.invalid': 'ID du tweet invalide'
     })
+    // author: objectId.required()
+    //     .messages({
+    //         'any.required': 'Auteur est requis',
+    //         'any.invalid': 'ID d\'auteur invalide'
+    // }),
+    // tweet: objectId.required()
+    //     .messages({
+    //         'any.required': 'Tweet est requis',
+    //         'any.invalid': 'ID du tweet invalide'
+    // })
 })
 
 module.exports = { Comment, commentValidation }

@@ -3,6 +3,8 @@ const cors = require('cors')
 const path = require("path")
 const dotenv = require('dotenv')
 const bodyParser = require('body-parser')
+const fs = require("fs")
+const { graphqlUploadExpress } = require('graphql-upload')
 
 const tweetsRoute = require('./routes/tweetsRoute')
 const usersRoute = require('./routes/usersRoute')
@@ -22,5 +24,6 @@ app.use('/api/users', usersRoute)
 app.use('/api/auth', authRoutes)
 app.use('/api/admin', adminRoutes)
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")))
+app.use("/graphql", graphqlUploadExpress({ maxFileSize: 10000000, maxFiles: 5 }));
 
 module.exports = app

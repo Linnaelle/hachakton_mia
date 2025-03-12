@@ -3,10 +3,87 @@ const esClient = require('../utils/elasticsearchClient')
 const { Tweet } = require('../models/tweets')
 const { generateAccessToken, verifyToken } = require('../utils/auth')
 const bcrypt = require('bcryptjs')
-const { User } = require('../models/users')
+const fs = require('fs')
+const path = require('path')
+const mediaQueue = require('../queues/mediaQueue') // File d'attente Bull pour les médias
+const { wss } = require('../wsServer'); // Serveur WebSocket
+const { GraphQLUpload } = require('graphql-upload')
+const { User } = require("../models/users")
+const { handleUpload } = require('../utils/graphUpload')
+const { Comment } = require('../models/comments')
+const { sendNotification, notificationQueue } = require("../queues/notificationQueue")
+const { Like } = require('../models/likes')
 
 const resolvers = {
+  // On expose le scalar Upload
+  Upload: GraphQLUpload,
+
   Query: {
+    getTimeline: async (_, __, { req }) => {
+      const currentUser = await verifyToken(req);
+      if (!currentUser) throw new Error("Authentification requise");
+    
+      const user = await User.findById(currentUser.id).select('followings bookmarks');
+      if (!user) throw new Error("Utilisateur introuvable");
+    
+      // Récupérer les tweets des abonnements
+      const followedTweets = await Tweet.find({ author: { $in: user.followings } })
+        .populate('author', 'username profile_img')
+        .sort({ createdAt: -1 })
+        .limit(50);
+    
+      // Récupérer les tweets likés et retweetés
+      const likedAndRetweetedTweets = await Like.find({ user: currentUser.id })
+        .populate({
+          path: 'tweet',
+          populate: { path: 'author', select: 'username profile_img' }
+        })
+        .sort({ createdAt: -1 })
+        .limit(50);
+    
+      // Récupérer les tweets avec les hashtags populaires
+      const trendingHashtags = await Tweet.aggregate([
+        { $unwind: "$hashtags" },
+        { $group: { _id: "$hashtags", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 }
+      ]);
+    
+      const tweetsWithTrendingHashtags = await Tweet.find({
+        hashtags: { $in: trendingHashtags.map(tag => tag._id) }
+      })
+        .populate('author', 'username profile_img')
+        .sort({ engagementScore: -1 })
+        .limit(50);
+    
+      // Fusionner et trier les tweets
+      const timelineTweets = [...followedTweets, ...likedAndRetweetedTweets.map(like => like.tweet), ...tweetsWithTrendingHashtags];
+    
+      const uniqueTweets = Array.from(new Map(timelineTweets.map(tweet => [tweet._id.toString(), tweet])).values())
+        .sort((a, b) => (b.likes.length + b.retweets.length) - (a.likes.length + a.retweets.length));
+    
+      return uniqueTweets;
+    },
+    getUserTweets: async(_, { userId }) => {
+      try {
+        const tweets = await Tweet.find({ author: userId }).populate("author");
+        return tweets;
+      } catch (error) {
+        throw new Error("Erreur lors de la récupération des tweets.");
+      }
+    },
+    getTimeline: async (_, __, { req }) => {
+      // Vérifie l’authentification
+      const user = await verifyToken(req);
+      if (!user) throw new Error("Non authentifié");
+      // console.log(user)
+      // Récupérer les tweets les plus récents
+      const tweets = await Tweet.find().sort({ createdAt: -1 })
+      .populate("author", "_id username");
+
+      console.log(tweets)
+      return tweets
+    },
     getTweet: async (_, { id }) => {
       // Vérifier si le tweet est en cache
       const cachedTweet = await redis.get(`tweet:${id}`)
@@ -16,7 +93,11 @@ const resolvers = {
       }
 
       // Sinon, récupérer depuis MongoDB
-      const tweet = await Tweet.findById(id).populate("author")
+      const tweet = await Tweet.findById(id).populate('author').populate({
+        path: 'comments',
+        populate: { path: 'author' } // Récupère les auteurs des commentaires
+      })
+
       if (!tweet) throw new Error("Tweet non trouvé")
 
       // Mettre en cache avec expiration
@@ -44,13 +125,151 @@ const resolvers = {
     },
 
     getCurrentUser: async (_, __, { req }) => {
-        const user = await verifyToken(req);
+        const user = await verifyToken(req)
         if (!user) throw new Error("Non authentifié");
         return user;
+    },
+    // getUserTweets(userId: ID!): [Tweet!]!
+  },
+  //PERMET DE RECUP TOUS LES TWEETS ASSOCIES QUAND ON QUERY UN USER
+  User: {
+    async tweets(parent) {
+      return await Tweet.find({ author: parent.id });
     },
   },
 
   Mutation: {
+    follow: async (_, { userId }, { req }) => {
+      const currentUser = await verifyToken(req);
+      if (!currentUser) throw new Error("Authentification requise")
+    
+      if (currentUser.id === userId) {
+        throw new Error("Vous ne pouvez pas vous suivre vous-même.");
+      }
+    
+      const user = await User.findById(currentUser.id);
+      const targetUser = await User.findById(userId);
+    
+      if (!targetUser) {
+        throw new Error("Utilisateur introuvable.");
+      }
+    
+      const alreadyFollowing = user.followings.includes(userId);
+    
+      if (alreadyFollowing) {
+        user.followings = user.followings.filter(id => id.toString() !== userId);
+        targetUser.followers = targetUser.followers.filter(id => id.toString() !== currentUser.id);
+      } else {
+        user.followings.push(userId);
+        targetUser.followers.push(currentUser.id);
+    
+        // ✅ Ajouter une notification
+        await notificationQueue.add({
+          recipientId: targetUser._id.toString(),
+          message: `${user.username} vous suit maintenant!`,
+        });
+      }
+    
+      await user.save();
+      await targetUser.save();
+    
+      return {
+        success: true,
+        following: !alreadyFollowing,
+        followersCount: targetUser.followers.length
+      };
+    },
+    bookmarkTweet: async (_, { tweetId }, { req }) => {
+      const user = await verifyToken(req);
+      if (!user) throw new Error("Authentification requise");
+    
+      // Vérifier si le tweet existe
+      const tweet = await Tweet.findById(tweetId);
+      if (!tweet) throw new Error("Tweet non trouvé");
+    
+      // Ajouter ou retirer le tweet des signets
+      const isBookmarked = user.bookmarks.includes(tweetId);
+      if (isBookmarked) {
+        user.bookmarks = user.bookmarks.filter(id => id.toString() !== tweetId);
+      } else {
+        user.bookmarks.push(tweetId);
+      }
+    
+      await user.save();
+      return user;
+    },
+    reTweet: async (_, { tweetId }, { req }) => {
+      try {
+        // Vérifier l'authentification de l'utilisateur
+        const user = await verifyToken(req);
+        if (!user) throw new Error("Authentification requise");
+    
+        // Vérifier que le tweet existe
+        const tweet = await Tweet.findById(tweetId);
+        if (!tweet) throw new Error("Tweet non trouvé");
+    
+        // Créer un nouveau retweet
+        const reTweet = new Tweet({
+          content: tweet.content,
+          media: tweet.media,
+          author: user.id,
+          originalTweet: tweet._id,
+          isRetweet: true,
+          mentions: tweet.mentions,
+          likes: [],
+          comments: [],
+          retweets: [],
+          hashtags: tweet.hashtags,
+        });
+    
+        await reTweet.save(); // Sauvegarde du retweet
+    
+        // Ajouter l'ID du retweet au tweet original
+        tweet.retweets.push(reTweet._id);
+        await tweet.save(); // Sauvegarde du tweet original
+    
+        return reTweet;
+      } catch (error) {
+        console.error("Erreur dans reTweet:", error);
+        throw new Error("Erreur interne du serveur");
+      }
+    },
+    async likeTweet(_, { tweetId }, { req }) {
+      const user = await verifyToken(req)
+      if (!user) throw new Error("Requiert authentification")
+      const tweet = await Tweet.findById(tweetId)
+
+      if (!tweet) throw new Error("Tweet not found")
+      const userId = user.id.toString()
+
+      // Vérifier si l'utilisateur a déjà liké ce tweet
+      const existingLike = await Like.findOne({ user: userId, tweet: tweetId })
+      const alreadyLiked = tweet.likes.includes(userId)
+
+      if (existingLike) {
+         // Si déjà liké, retirer le like
+          await Like.deleteOne({ _id: existingLike._id })
+          tweet.likes = tweet.likes.filter(id => id.toString() !== userId)
+          await tweet.save()
+          return { success: true, liked: false, likes: tweet.likes.length }
+      } 
+      // Ajouter le like
+      const newLike = new Like({ user: userId, tweet: tweetId })
+      await newLike.save()
+
+      tweet.likes.push(userId)
+      await tweet.save()
+      // Queue a notification for the author
+      await sendNotification(tweet.author.toString(), `${user.username} a liké votre tweet!`)
+    
+      // return tweet
+      return {
+        success: true,
+        liked: !alreadyLiked,
+        likes: tweet.likes.length,
+        tweet: await Tweet.findById(tweetId).populate("author likes"),
+    }
+    },
     register: async (_, { username, email, password }) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new User({ username, email, password: hashedPassword });
@@ -88,25 +307,49 @@ const resolvers = {
         return { success: false, message: "Erreur serveur." };
       }
     },
+    createTweet: async (_, { content, media, mentions, hashtags }, { req }) => {
+      // Vérifier l'authentification (le middleware doit ajouter req.user)
+      // Vérifie l'authentification
+      const user = await verifyToken(req)
+      if (!user) throw new Error("Non authentifié");
+      console.log("Utilisateur authentifié:", user.id);
+      console.log("Content reçu:", content);
+    
+      if (!content || content.trim() === "") {
+        throw new Error("Le contenu du tweet ne peut pas être vide.");
+      }
+      let mediaUrl = null;
 
-    createTweet: async (_, { content }, context) => {
-        const user = await verifyToken(context.req)
-        if (!user) throw new Error("Non authentifié")
+      // Si un fichier média est fourni, le traiter
+      if (media) {
+        mediaUrl = await handleUpload(media)
+        // Ajouter le média à la file d'attente pour traitement asynchrone
+        await mediaQueue.add({ filePath: mediaUrl });
+      }
 
-        const tweet = new Tweet({ content, author: user.id })
-        await tweet.save()
+      // Convertir les hashtags en minuscules (si présents)
+      const tweetHashtags = hashtags ? hashtags.map(tag => tag.toLowerCase()) : [];
 
-        await esClient.index({
-            index: "tweets",
-            id: tweet._id.toString(),
-            body: { content, author: tweet.author },
-        })
+      // Créer le tweet dans la base
+      const tweet = new Tweet({
+        content,
+        media: mediaUrl,
+        author: user.id,
+        mentions,
+        hashtags: tweetHashtags,
+      });
+      await tweet.save();
 
-        await redis.keys("search:*").then((keys) => {
-            if (keys.length) redis.del(...keys)
-        })
+      // Envoyer une notification via WebSocket à tous les clients connectés
+      const payload = JSON.stringify({
+        type: "NEW_TWEET",
+        tweetId: tweet._id,
+        content: tweet.content,
+        author: user.id,
+      });
+      wss.clients.forEach(client => client.send(payload));
 
-        return tweet
+      return tweet;
     },
   },
 }

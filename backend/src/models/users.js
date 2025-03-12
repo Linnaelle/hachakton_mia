@@ -11,6 +11,7 @@ const userSchema = new Schema({
     profile_img: { type: String }, 
     banniere_img: { type: String },
     followers: [{ type: Schema.Types.ObjectId, ref: 'User'}],
+    followings: [{ type: Schema.Types.ObjectId, ref: 'User'}],
     bookmarks: [{ type: Schema.Types.ObjectId, ref: 'Tweet'}],
     role: { type: String, enum: ['user', 'admin', 'debile'], default: 'user' },
 },
@@ -58,14 +59,6 @@ const userValidation = Joi.object({
         .messages({
         'string.base': 'L\'image de bannière doit être une chaîne de caractères',
         'string.uri': 'L\'image de bannière doit être une URL valide'
-    }),
-    followers: Joi.array().items(objectId).default([])
-        .messages({
-        'array.base': 'Followers doit être un tableau'
-    }),
-    bookmarks: Joi.array().items(objectId).default([])
-        .messages({
-        'array.base': 'Bookmarks doit être un tableau'
     })
 })
 
