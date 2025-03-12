@@ -11,6 +11,7 @@ const typeDefs = gql`
     mentions: [User]
     likes: [User]
     comments: [Comment]
+    isRetweet: Boolean
     retweets: [Tweet]
     hashtags: [String]
     createdAt: String!
@@ -35,6 +36,7 @@ const typeDefs = gql`
     getTweet(id: ID!): Tweet
     searchTweets(query: String!): [Tweet]
     getCurrentUser: User
+    userTimeline: Timeline!
     getTimeline: [Tweet!]!
     getUserTweets(userId: ID!): [Tweet!]!
   }
@@ -55,7 +57,6 @@ const typeDefs = gql`
       ): User
     reTweet(tweetId: ID!): Tweet
     bookmarkTweet(tweetId: ID!): User
-    getTimeline: [Tweet!]!
     login(email: String!, password: String!): User
     logout: LogoutResponse!
   }
@@ -74,6 +75,12 @@ const typeDefs = gql`
     success: Boolean!
     following: Boolean!
     followersCount: Int!
+  }
+  type Timeline {
+    tweets: [Tweet!]!
+    comments: [Comment!]!
+    likedTweets: [Tweet!]!
+    bookmarks: [Tweet!]!
   }
 `;
 
