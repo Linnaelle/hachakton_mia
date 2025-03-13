@@ -1,10 +1,17 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const Joi =  require('joi')
-const objectId = require('../utils/joiObjectId')
 
 const userSchema = new Schema({
     username: { type: String, required: true, unique: true, index: true },
+    handle: { 
+        type: String, 
+        required: true, 
+        unique: true, 
+        lowercase: true, 
+        trim: true,
+        match: /^[a-zA-Z0-9_]{3,15}$/
+    },
     email: { type: String, required: true, unique: true, index: true },
     password: { type: String, required: true },
     bio: { type: String, default: '' },
@@ -14,9 +21,29 @@ const userSchema = new Schema({
     followings: [{ type: Schema.Types.ObjectId, ref: 'User'}],
     bookmarks: [{ type: Schema.Types.ObjectId, ref: 'Tweet'}],
     role: { type: String, enum: ['user', 'admin', 'debile'], default: 'user' },
+    isEmailVerified: { type: Boolean, default: false },
+    verificationToken: { type: String },
+    verificationTokenExpires: { type: Date },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date }
 },
 {
     timestamps: true
+})
+
+userSchema.pre('save', async function (next) {
+    if (!this.handle) {
+      let baseHandle = this.username.toLowerCase().replace(/\s+/g, '_')
+      let uniqueHandle = baseHandle
+      let count = 1
+  
+      while (await mongoose.model('User').findOne({ handle: uniqueHandle })) {
+        uniqueHandle = `${baseHandle}${count++}`
+      }
+  
+      this.handle = uniqueHandle
+    }
+    next()
 })
 
 const User = mongoose.model('User', userSchema)
