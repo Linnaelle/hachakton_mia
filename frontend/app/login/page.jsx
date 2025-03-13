@@ -1,23 +1,20 @@
 ﻿'use client';
 
-import {useEffect, useState} from 'react';
-import { useAppContext } from '../context/appContext';
-import {useRouter} from "next/navigation";
-
+import { useEffect, useState } from 'react'
+import { useAppContext } from '../context/appContext'
+import { useRouter } from "next/navigation"
+import { LOGIN_MUTATION } from "../graphql/mutations"
+import { LoginResponse, LoginVariables } from "../type/auth"
+import { useMutation } from "@apollo/client"
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [errorMessage, setErrorMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('')
+    const [login, { data, loading, error }] = useMutation(LOGIN_MUTATION)
 
-    const router = useRouter();
-    const { appState, setUser, isLoading, setIsLoading } = useAppContext();
-
-    useEffect(() => {
-        if (appState.isLoggedIn) {
-            router.push('/');
-        }
-    }, [appState.isLoggedIn, router]);
+    const router = useRouter()
+    const { appState, setUser, isLoading, setIsLoading } = useAppContext()
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -27,49 +24,49 @@ export default function LoginPage() {
             setErrorMessage('Please fill in both fields');
             return;
         }
-
         setIsLoading(true);
         setErrorMessage('');
 
         try {
-            // Make a POST request to the login endpoint
-            const response = await fetch('http://localhost:5000/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
+            // // Make a POST request to the login endpoint
+            // const response = await fetch('http://localhost:5000/api/auth/login', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({ email, password }),
+            // });
 
-            const data = await response.json();
+            // const data = await response.json();
 
-            if (!response.ok) {
-                // Handle error response
-                setErrorMessage(data.message || 'Login failed. Please try again.');
-                return;
+            // if (!response.ok) {
+            //     // Handle error response
+            //     setErrorMessage(data.message || 'Login failed. Please try again.');
+            //     return;
+            // }
+
+            // // Handle successful login using the AppContext
+            // if (data.user && data.tokens) {
+            //     console.log(data)
+            //     // Update the AppContext with user data and token
+            //     setUser(data.user, data.tokens.accessToken);
+            //     router.push('/');
+            // } else {
+            //     setErrorMessage('Invalid response from server');
+            // }
+            const { data, loading } = await login({ variables: { email, password } })
+            console.log(loading)
+            if (data) {
+                router.replace('/')
+                // Destructuration de l'objet
+                const { token, ...user } = data.login
+                setUser(user,token)
+                
             }
-
-            // Handle successful login using the AppContext
-            if (data.user && data.tokens) {
-                // Update the AppContext with user data and token
-                setUser(data.user, data.tokens.accessToken);
-
-                // No need to manually set localStorage as your AppContext already handles that
-                // in the useEffect that runs when appState changes
-
-                // Use the router for navigation instead of directly changing window.location
-                // for better Next.js integration
-                router.push('/');
-            } else {
-                setErrorMessage('Invalid response from server');
-            }
-
         } catch (error) {
-            console.error('Login error:', error);
+            console.error("Login Failed:", error.message);
             setErrorMessage('An error occurred during login. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
+        } 
     };
 
     return (
@@ -78,9 +75,9 @@ export default function LoginPage() {
                 <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">Login</h1>
 
                 {/* Error message */}
-                {errorMessage && (
+                {error && (
                     <div className="text-red-500 text-sm text-center mb-4">
-                        {errorMessage}
+                        {error.message}
                     </div>
                 )}
 
@@ -115,9 +112,9 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         className="w-full py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition duration-200"
-                        disabled={isLoading}
+                        disabled={loading}
                     >
-                        {isLoading ? 'Logging in...' : 'Login'}
+                        {loading ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
 
