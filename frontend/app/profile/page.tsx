@@ -4,9 +4,8 @@ import { useState } from 'react';
 import { PencilIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import TweetsList from "@/components/TweetList";
-import {gql, useQuery} from "@apollo/client";
-import { useAppContext } from '../context/appContext';
-
+import { gql, useQuery } from "@apollo/client";
+import CommentsList from "@/components/CommentsList";
 
 const GET_USER_INFO = gql`
   query User {
@@ -26,14 +25,24 @@ const GET_USER_INFO = gql`
         likes {
           id
         }
+        author {
+          id
+          username
+          profile_img
+        }
       }
       comments {
         id
         content
-      }
+        author {
+          id
+          username
+          profile_img
+        }
+        tweetId
+        }
       likedTweets {
         id
-        content
       }
       bookmarks {
         id
@@ -45,18 +54,20 @@ const GET_USER_INFO = gql`
 
 export default function ProfilePage() {
     const [activeTab, setActiveTab] = useState('posts');
-    const { appState } = useAppContext();
 
-    // Récupération des tweets
+    // Récupération des données utilisateur
     const { data, loading, error } = useQuery(GET_USER_INFO, {
         fetchPolicy: "cache-and-network", // Évite d'afficher des données obsolètes
     });
-    if (data) { console.log(data)}
-    if (error) { console.log(error)}
 
-    function handleFollow() {
-        //Why would you want to follow yourself ?
-    }
+    if (data) { console.log(data) }
+    if (error) { console.log(error) }
+
+    // Preparing user data
+    const userData = data?.userTimeline?.user || {};
+    const tweetsCount = data?.userTimeline?.tweets?.length || 0;
+    const followersCount = userData?.followers?.length || 0;
+    const followingCount = userData?.followings?.length || 0;
 
     return (
         <div className="min-h-screen bg-gray-100 text-gray-900 pt-22">
@@ -72,14 +83,18 @@ export default function ProfilePage() {
 
                     {/* Profile Info */}
                     <div className="flex items-center space-x-6">
-                        <img src="/placeholder-profile.jpg" alt="Profile" className="w-20 h-20 rounded-full" />
+                        <img
+                            src={userData.profile_img || "/placeholder-profile.jpg"}
+                            alt="Profile"
+                            className="w-20 h-20 rounded-full object-cover"
+                        />
                         <div>
-                            <h1 className="text-xl font-bold">Username</h1>
-                            <p className="text-gray-600">This is a sample bio.</p>
+                            <h1 className="text-xl font-bold">{userData.username || "Username"}</h1>
+                            <p className="text-gray-600">{userData.bio || "This is a sample bio."}</p>
                             <div className="mt-2 flex space-x-4 text-sm text-gray-500">
-                                <span><strong>100</strong> Posts</span>
-                                <span><strong>200</strong> Followers</span>
-                                <span><strong>500</strong> Following</span>
+                                <span><strong>{tweetsCount}</strong> Posts</span>
+                                <span><strong>{followersCount}</strong> Followers</span>
+                                <span><strong>{followingCount}</strong> Following</span>
                             </div>
                         </div>
                     </div>
@@ -100,19 +115,40 @@ export default function ProfilePage() {
 
                 {/* Message d'erreur en cas de problème */}
                 {error && (
-                    <div className="bg-red-500 text-white p-2 rounded mb-2">
-                        {error.message}
+                    <div className="bg-red-500 text-white p-4 rounded-lg mb-4">
+                        <p className="font-bold">Error:</p>
+                        <p>{error.message}</p>
                     </div>
                 )}
+
                 {/* Tab Content */}
                 <div className="mt-4 bg-white p-4 rounded-lg shadow-sm">
                     {activeTab === 'posts' && (
                         <div>
-                            <TweetsList tweets={data?.userTimeline || []} loading={loading} />
+                            <TweetsList
+                                tweets={data?.userTimeline?.tweets || []}
+                                loading={loading}
+                            />
                         </div>
                     )}
-                    {activeTab === 'liked' && <div>Liked posts here...</div>}
-                    {activeTab === 'comments' && <div>Comments here...</div>}
+
+                    {activeTab === 'liked' && (
+                        <div>
+                            <TweetsList
+                                tweets={data?.userTimeline?.likedTweets || []}
+                                loading={loading}
+                            />
+                        </div>
+                    )}
+
+                    {activeTab === 'comments' && (
+                        <div>
+                            <CommentsList
+                                comments={data?.userTimeline?.comments || []}
+                                loading={loading}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

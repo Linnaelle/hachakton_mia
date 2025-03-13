@@ -63,18 +63,6 @@ export default function EditProfilePage() {
                     {/* Form Fields */}
                     <div className="mt-6 space-y-4">
                         <div>
-                            <label className="block text-gray-600 text-sm">Username</label>
-                            <input type="text" name="username" value={profile.username} onChange={handleChange}
-                                   className="w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-gray-600 text-sm">Email</label>
-                            <input type="text" name="handle" value={profile.mail} onChange={handleChange}
-                                   className="w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
-                            />
-                        </div>
-                        <div>
                             <label className="block text-gray-600 text-sm">Bio</label>
                             <textarea name="bio" value={profile.bio} onChange={handleChange} rows={3}
                                       className="w-full p-2 border rounded-md focus:ring focus:ring-blue-300"
