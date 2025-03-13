@@ -1,5 +1,8 @@
 # Rettewt
 
+Lien Trello:
+https://trello.com/invite/b/67cecda2878b4d361fb04c3e/ATTI22631423a5b90829918e718ab7ada8ab6F2598BC/hackathon-g30
+
 Application de microblogging fullstack inspirée de Twitter.
 
 ## 📋 Description
