@@ -14,9 +14,7 @@ import {
   ArrowPathIcon as ArrowPathSolid 
 } from "@heroicons/react/24/solid";
 
-import { FOLLOW_MUTATION } from "../app/graphql/mutations"
-// import { useMutation } from "@apollo/client"
-import { useQueryClient } from "@tanstack/react-query"
+import { FOLLOW_MUTATION, LIKE_TWEET, RE_TWEET  } from "../app/graphql/mutations"
 import { useMutation } from "@apollo/client"
 import { useAppContext } from "@/app/context/appContext"
  
@@ -40,57 +38,101 @@ interface TweetProps {
   handleFollowToggle: (userId: string) => void
 }
  
-const handleButtonClick = (e: React.MouseEvent, callback: () => void) => {
-  e.stopPropagation(); // Empêche la propagation pour éviter l'ouverture accidentelle du tweet
-  callback();
-};
- 
 export default function Tweet({
    id, content, createdAt, isFollowing, profile_img, author, isLiked, likes,
-   retweets, isRetweeted, comments, onFollowToggle, handleFollowToggle 
+   retweets, isRetweeted, comments
   }: TweetProps) {
-  const [liked, setLiked] = useState(isLiked);
-  const [retweeted, setRetweeted] = useState(isRetweeted);
-  const [likesCount, setLikesCount] = useState(likes);
-  const [retweetsCount, setRetweetsCount] = useState(retweets);
+  const [liked, setLiked] = useState(isLiked)
+  const [retweeted, setRetweeted] = useState(isRetweeted)
+  const [likesCount, setLikesCount] = useState(likes)
+  const [retweetsCount, setRetweetsCount] = useState(retweets)
   const [following, setFollowing] = useState(isFollowing)
-  const { appState } = useAppContext();
- 
-  const [followUser, { loading }] = useMutation(FOLLOW_MUTATION)
+  const { appState } = useAppContext()
 
+  const [likeTweet] = useMutation(LIKE_TWEET, {
+    variables: { tweetId: id },
+    update(cache, { data: { likeTweet } }) {
+      cache.modify({
+        id: cache.identify({ __typename: "Tweet", id }),
+        fields: {
+          likes(existingLikes = 0) {
+            return likeTweet.liked ? existingLikes + 1 : existingLikes - 1;
+          },
+          liked() {
+            return likeTweet.liked;
+          },
+        },
+      });
+    },
+  });
+
+  const [reTweet] = useMutation(RE_TWEET, {
+    variables: { tweetId: id },
+    update(cache, { data: { reTweet } }) {
+      cache.modify({
+        id: cache.identify({ __typename: "Tweet", id }),
+        fields: {
+          retweets(existingRetweets = 0) {
+            return reTweet.success ? existingRetweets + 1 : existingRetweets - 1;
+          },
+          isRetweeted() {
+            return reTweet.success;
+          },
+        },
+      });
+    },
+  });
+
+  const [followUser, { loading }] = useMutation(FOLLOW_MUTATION)
 
   const handleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();
   
     try {
-      const { data } = await followUser({
-        variables: { userId: author.id },
-      });
+        const { data } = await followUser({
+            variables: { userId: author.id },
+        });
 
-      // // Si la mutation réussit, on récupère la nouvelle valeur de isFollowing
-      // const newFollowingState = data?.followUser?.isFollowing;  
-      console.log(data)
-      const newFollowingState = data?.followUser?.isFollowing; // État retourné par l'API
-      handleFollowToggle(author.id, newFollowingState); // Met à jour globalement
-
+        console.log(data);
+        const newFollowingState = data?.followUser?.isFollowing ?? !following;
+        
+        setFollowing(newFollowingState); // Mise à jour locale
+        // Rafraîchir la page après un follow/unfollow
+        window.location.reload();
     } catch (error) {
-      console.error("Erreur lors du suivi de l'utilisateur:", error);
+        console.error("Erreur lors du suivi de l'utilisateur:", error);
     }
 };
+
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    try {
+      const { data } = await likeTweet();
+      if (data?.likeTweet?.success) {
+        setLiked(data.likeTweet.liked);
+        setLikesCount(data.likeTweet.likes);
+      }
+    } catch (error) {
+      console.error("Erreur lors du like:", error);
+    }
+  }
  
-  const handleLike = () => {
-    setLiked(!liked);
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
-  };
- 
-  const handleRetweet = () => {
-    setRetweeted(!retweeted);
-    setRetweetsCount(retweeted ? retweetsCount - 1 : retweetsCount + 1);
+  const handleRetweet = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    try {
+      const { data } = await reTweet();
+      if (data?.reTweet?.success) {
+        console.log(data)
+        setRetweeted(!retweeted);
+        setRetweetsCount(retweeted ? retweetsCount - 1 : retweetsCount + 1);
+      }
+    } catch (error) {
+      console.error("Erreur lors du retweet:", error);
+    }
   };
 
-  // const handleFollow = (e: React.MouseEvent) => {
-  //   handleButtonClick(e, () => followMutation.mutate());
-  // };
  
   return (
   <div className="p-4 hover:bg-gray-50 transition-colors cursor-pointer">
@@ -114,10 +156,10 @@ export default function Tweet({
         onClick={handleFollow}
         disabled={loading}
         className={`flex items-center gap-1 px-3 py-1 text-sm font-medium 
-          ${isFollowing ? "bg-blue-500 text-white" : "bg-black text-white"} 
+          ${following ? "bg-blue-500 text-white" : "bg-black text-white"} 
           rounded-full hover:bg-gray-800 transition`} >
-          {isFollowing ? <CheckIcon className="w-4 h-4" /> : <UserPlusIcon className="w-4 h-4" />}
-          {isFollowing ? "Following" : "Follow"}
+          {following ? <CheckIcon className="w-4 h-4" /> : <UserPlusIcon className="w-4 h-4" />}
+          {following ? "Following" : "Follow"}
       </button>)}
     </div>
     
@@ -130,19 +172,19 @@ export default function Tweet({
       </button>
       {/* retweet button */}
       <button 
-          className={`flex items-center gap-2 ${isRetweeted ? "text-blue-500" : "hover:text-blue-500"}`}
-          onClick={(e) => handleButtonClick(e, handleRetweet)}
+          className={`flex items-center gap-2 ${retweeted ? "text-blue-500" : "hover:text-blue-500"}`}
+          onClick={(e) => handleRetweet(e)}
         >
         {retweeted ? <ArrowPathSolid className="w-5 h-5" /> : <ArrowPathIcon className="w-5 h-5" />}
-        <span>{retweets}</span>
+        <span>{retweetsCount}</span>
       </button>
       {/* like unlike */}
       <button 
-        className={`flex items-center gap-2 ${isLiked ? "text-red-500" : "hover:text-red-500"}`}
-        onClick={(e) => handleButtonClick(e, handleLike)}
+        className={`flex items-center gap-2 ${liked ? "text-red-500" : "hover:text-red-500"}`}
+        onClick={(e) => handleLike(e)}
       >
-        {isLiked ? <HeartSolid className="w-5 h-5" /> : <HeartOutline className="w-5 h-5" />}
-        <span>{likes}</span>
+        {liked ? <HeartSolid className="w-5 h-5" /> : <HeartOutline className="w-5 h-5" />}
+        <span>{likesCount}</span>
       </button>
     </div>
     </div>
