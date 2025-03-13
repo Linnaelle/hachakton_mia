@@ -61,7 +61,10 @@ export default function TweetsList({ tweets, loading }: TweetsListProps) {
             {!loading && tweets.length > 0 ? (
                 tweets.map((tweet) => (
                     <div key={tweet.id} onClick={() => openTweet(tweet)}>
-                        <Tweet {...tweet} />
+                        {/* <Tweet {...tweet} /> */}
+                        <Tweet 
+                            {...tweet} 
+                        />
                     </div>
                 ))
             ) : (

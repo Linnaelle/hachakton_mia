@@ -13,7 +13,6 @@ const generateTokens = async (user) => {
         username: user.username,
         email: user.email
     }
-    
     const accessToken = jwt.sign(payload, jwtConfig.secret, {
         expiresIn: jwtConfig.accessTokenExpiration,
         issuer: jwtConfig.issuer,

@@ -4,7 +4,8 @@ import "./globals.css"
 import Header from "./components/header"
 import Footer from "./components/footer"
 import { AppProvider } from "@/app/context/appContext"
-import {ApolloProviderWrapper} from "@/app/context/ApolloProviderWrapper"
+import { ApolloProviderWrapper } from "@/app/context/ApolloProviderWrapper"
+import ReactQueryProvider from "./context/QueryClientProvider"; // Assure-toi que le chemin est correct
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,9 +34,11 @@ export default function RootLayout({
       >
       <AppProvider>
         <ApolloProviderWrapper>
+          <ReactQueryProvider>
             <Header />
             {children}
             <Footer />
+          </ReactQueryProvider> 
         </ApolloProviderWrapper>
       </AppProvider>
       </body>
