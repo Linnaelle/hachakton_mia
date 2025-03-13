@@ -11,7 +11,7 @@ const GET_USER_INFO = gql`
   query User {
     userTimeline {
       user {
-        id
+        _id
         username
         email
         profile_img
@@ -23,7 +23,7 @@ const GET_USER_INFO = gql`
         media
         createdAt
         author {
-          id
+          _id
           username
           profile_img
         }
@@ -44,7 +44,7 @@ const GET_USER_INFO = gql`
         isRetweeted
         isFollowing
         author {
-          id
+          _id
           username
           profile_img
         }

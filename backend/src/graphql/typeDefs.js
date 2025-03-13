@@ -69,7 +69,7 @@ const typeDefs = gql`
 
   # Type pour les utilisateurs
   type User {
-    id: ID!
+    _id: ID!
     username: String!
     handle: String!
     email: String!
@@ -113,6 +113,9 @@ const typeDefs = gql`
     
     # Récupère le fil d'actualité personnalisé
     getTimeline: [TimelineResponse!]!
+
+    #fil public
+    publicTimeline: [TimelineResponse!]!
     
     # Récupère les tweets d'un utilisateur spécifique
     getUserTweets(userId: ID!): [Tweet!]!

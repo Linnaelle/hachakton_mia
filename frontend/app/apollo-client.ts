@@ -7,7 +7,7 @@ import { setContext } from '@apollo/client/link/context';
 
 export const createApolloClient = (token: string | null) => {
   const httpLink = new HttpLink({
-      uri: "http://localhost:5000/graphql", // Assure-toi que cette variable est définie
+      uri: "http://localhost:4000/graphql", // Assure-toi que cette variable est définie
   });
 
   const authLink = setContext((_, { headers }) => ({

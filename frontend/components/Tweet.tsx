@@ -31,7 +31,7 @@ interface TweetProps {
   comments: [string]
   author: {
     profile_img: string | undefined;
-    id: string;
+    _id: string;
     username: string
   },
   profile_img: string // Ajout de l'image de profil dynamique
@@ -91,7 +91,7 @@ export default function Tweet({
   
     try {
         const { data } = await followUser({
-            variables: { userId: author.id },
+            variables: { userId: author._id },
         });
 
         console.log(data);
@@ -151,7 +151,7 @@ export default function Tweet({
           <span className="text-gray-500">· {createdAt}</span>
       </div>
       {/* follow button */}
-      {!(appState?.user?.id === author.id) &&(
+      {!(appState?.user?._id === author._id) &&(
       <button
         // onClick={(e) => handleButtonClick(e, onFollowToggle)}
         onClick={handleFollow}
