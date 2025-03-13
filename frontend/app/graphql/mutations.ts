@@ -10,4 +10,14 @@ export const LOGIN_MUTATION = gql`
         token
     }
   }
-`;
+`
+
+export const FOLLOW_MUTATION = gql`
+  mutation FollowUser($userId: ID!) {
+    follow(userId: $userId) {
+      success
+      followersCount
+      following
+    }
+  }
+`

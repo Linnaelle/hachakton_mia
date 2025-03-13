@@ -31,6 +31,7 @@ interface TweetsListProps {
 }
 
 export default function TweetsList({ tweets, loading }: TweetsListProps) {
+    const [followedUsers, setFollowedUsers] = useState<Record<number, boolean>>({}); // Suivi des utilisateurs suivis
     const [selectedTweet, setSelectedTweet] = useState<TweetData | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
 
@@ -38,6 +39,17 @@ export default function TweetsList({ tweets, loading }: TweetsListProps) {
     const [fetchTweet, { data, loading: tweetLoading, error }] = useLazyQuery(GET_TWEET, {
         fetchPolicy: "network-only", // Force Apollo à toujours récupérer les données du serveur,
     });
+
+    const handleFollowToggle = (userId: string, isFollowing: boolean) => {
+        setFollowedUsers((prev) => ({
+            ...prev,
+            [userId]: !prev[userId]
+        }));
+        // setFollowedUsers((prev) => ({
+        //     ...prev,
+        //     [userId]: isFollowing, // Met à jour avec la valeur retournée par le backend
+        // }));
+    };
 
     const openTweet = (tweet: TweetData) => {
         setSelectedTweet(tweet);
@@ -61,7 +73,14 @@ export default function TweetsList({ tweets, loading }: TweetsListProps) {
             {!loading && tweets.length > 0 ? (
                 tweets.map((tweet) => (
                     <div key={tweet.id} onClick={() => openTweet(tweet)}>
-                        <Tweet {...tweet} />
+                        {/* <Tweet {...tweet} /> */}
+                        <Tweet 
+                            {...tweet} 
+                            // isFollowing={followedUsers[tweet.author.id] ?? tweet.isFollowing} 
+                            isFollowing={followedUsers[tweet.id] !== undefined ? followedUsers[tweet.id] : tweet.isFollowing}
+                            // onFollowToggle={() => handleFollowToggle(tweet.author.id, )}
+                            handleFollowToggle={handleFollowToggle} 
+                        />
                     </div>
                 ))
             ) : (
