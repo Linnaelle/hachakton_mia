@@ -25,8 +25,9 @@ export default function SignupPage() {
     async function handleSignup(e) {
         e.preventDefault();
         setError('');
+
         try {
-            const res = await fetch('http://localhost:5000/api/auth/register', {
+            const res = await fetch('http://localhost:5000/api/users/signup', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

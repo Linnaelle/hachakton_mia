@@ -1,8 +1,10 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLazyQuery } from "@apollo/client";
 import Tweet from "./Tweet";
 import TweetModal from "./TweetModal";
+import { GET_TWEET } from "../app/graphql/queries";
 
 interface TweetData {
     id: number;
@@ -11,6 +13,7 @@ interface TweetData {
     content: string;
     time: string;
     isFollowing: boolean;
+    profileImage: string;
     onFollowToggle: () => void;
 }
 
@@ -23,46 +26,56 @@ interface Comment {
 }
 
 interface TweetsListProps {
-    TweetList: TweetData[]; // Expecting an array of tweets as a prop
+    tweets: TweetData[];
+    loading: boolean;
 }
 
-export default function TweetsList({ TweetList }: TweetsListProps) {
-    const [selectedTweet, setSelectedTweet] = useState<TweetData | null>();
+export default function TweetsList({ tweets, loading }: TweetsListProps) {
+    const [selectedTweet, setSelectedTweet] = useState<TweetData | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
 
-    const openTweet = async (tweet: TweetData) => {
+    // Utilisation de useLazyQuery pour ne pas exécuter la requête automatiquement
+    const [fetchTweet, { data, loading: tweetLoading, error }] = useLazyQuery(GET_TWEET, {
+        fetchPolicy: "network-only", // Force Apollo à toujours récupérer les données du serveur,
+    });
+
+    const openTweet = (tweet: TweetData) => {
         setSelectedTweet(tweet);
-
-        try {
-            const response = await fetch("/comments.json");
-            const data = await response.json();
-
-            console.log("Fetched comments data:", data);
-
-            if (Array.isArray(data)) {
-                const tweetComments = data.filter((comment) => comment.id_tweet === tweet.id);
-                setComments(tweetComments);
-            } else {
-                //No comments for this tweet
-                setComments([]);
-            }
-        } catch (error) {
-            console.error("Error fetching comments:", error);
-            setComments([]); // Fallback in case of error
-        }
+        setComments([]); // Réinitialise avant de charger les nouveaux
+        fetchTweet({ variables: { id: tweet.id } });
     };
+
+    useEffect(() => {
+        if (data?.getTweet?.comments) {
+            setComments(data.getTweet.comments);
+            console.log("Fetched comments:", data.getTweet.comments);
+        } else {
+            setComments([]); // Réinitialise les commentaires pour éviter l'affichage des anciens
+        }
+    }, [data, selectedTweet]); // Ajout de selectedTweet
 
     return (
         <div>
-            {TweetList.map((tweet) => (
-                <div key={tweet.id} onClick={() => openTweet(tweet)}>
-                    <Tweet key={tweet.id} {...tweet} />
-                </div>
-            ))}
+            {loading && <p className="text-center text-gray-500">Loading...</p>}
 
-            {/* Show modal if a tweet is selected */}
+            {!loading && tweets.length > 0 ? (
+                tweets.map((tweet) => (
+                    <div key={tweet.id} onClick={() => openTweet(tweet)}>
+                        <Tweet {...tweet} />
+                    </div>
+                ))
+            ) : (
+                !loading && <p className="text-center text-gray-500">No tweets available</p>
+            )}
+
             {selectedTweet && (
-                <TweetModal tweet={selectedTweet} comments={comments} onClose={() => setSelectedTweet(null)} />
+                <TweetModal
+                    tweet={selectedTweet}
+                    comments={comments}
+                    loading={tweetLoading}
+                    error={error}
+                    onClose={() => setSelectedTweet(null)}
+                />
             )}
         </div>
     );

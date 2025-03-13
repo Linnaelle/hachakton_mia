@@ -10,7 +10,8 @@ const userSchema = new Schema({
         unique: true, 
         lowercase: true, 
         trim: true,
-        match: /^[a-zA-Z0-9_]{3,15}$/
+        match: /^[a-zA-Z0-9_]{3,15}$/ // Handle format (3-15 chars, letters, numbers, underscores)
+
     },
     email: { type: String, required: true, unique: true, index: true },
     password: { type: String, required: true },
@@ -31,20 +32,23 @@ const userSchema = new Schema({
     timestamps: true
 })
 
+// Middleware pour auto-générer un handle unique avant sauvegarde
 userSchema.pre('save', async function (next) {
     if (!this.handle) {
-      let baseHandle = this.username.toLowerCase().replace(/\s+/g, '_')
-      let uniqueHandle = baseHandle
-      let count = 1
+      let baseHandle = this.username.toLowerCase().replace(/\s+/g, '_'); // Convertir en minuscule et remplacer les espaces
+      let uniqueHandle = baseHandle;
+      let count = 1;
   
+      // Vérifier l'unicité du handle
       while (await mongoose.model('User').findOne({ handle: uniqueHandle })) {
-        uniqueHandle = `${baseHandle}${count++}`
+        uniqueHandle = `${baseHandle}${count++}`;
       }
   
-      this.handle = uniqueHandle
+      this.handle = uniqueHandle;
     }
-    next()
-})
+    next();
+});
+
 
 const User = mongoose.model('User', userSchema)
 
@@ -57,6 +61,19 @@ const userValidation = Joi.object({
         'string.max': 'Username ne peut pas dépasser {#limit} caractères',
         'any.required': 'Username est requis'
     }),
+    // handle: Joi.string()
+    // .min(3)
+    // .max(15)
+    // .regex(/^[a-zA-Z0-9_]+$/)
+    // .required()
+    // .messages({
+    //   'string.base': 'Handle doit être une chaîne de caractères',
+    //   'string.empty': 'Handle ne peut pas être vide',
+    //   'string.min': 'Handle doit contenir au moins {#limit} caractères',
+    //   'string.max': 'Handle ne peut pas dépasser {#limit} caractères',
+    //   'string.pattern.base': 'Handle ne peut contenir que des lettres, des chiffres et des underscores',
+    //   'any.required': 'Handle est requis',
+    // }),
     email: Joi.string().email().required()
         .messages({
         'string.base': 'Email doit être une chaîne de caractères',

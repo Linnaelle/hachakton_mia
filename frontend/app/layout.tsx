@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import Header from "./components/header";
-import Footer from "./components/footer";
-import {AppProvider} from "@/app/context/appContext";
-
+import type { Metadata } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
+import "./globals.css"
+import Header from "./components/header"
+import Footer from "./components/footer"
+import { AppProvider } from "@/app/context/appContext"
+import {ApolloProviderWrapper} from "@/app/context/ApolloProviderWrapper"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,9 +32,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
       <AppProvider>
-        <Header/>
+        <ApolloProviderWrapper>
+            <Header />
             {children}
-        <Footer/>
+            <Footer />
+        </ApolloProviderWrapper>
       </AppProvider>
       </body>
     </html>

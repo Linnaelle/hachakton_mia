@@ -29,7 +29,7 @@ class tweetController {
             console.log(value)
             const { content, mentions, hashtags } = req.body;
             console.log(req.user)
-            const author = req.user.id; // ID de l'utilisateur authentifié
+            const author = req.user.id;
             let mediaUrl = null;
         
             if (req.file) {
@@ -46,7 +46,6 @@ class tweetController {
               mentions,
               hashtags: hashtags ? hashtags.map((tag) => tag.toLowerCase()) : [],
             });
-        
             await tweet.save();
         
             // Notification WebSocket pour les abonnés
