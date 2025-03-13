@@ -1,44 +1,59 @@
-const { notificationQueue, addNotificationToQueue } = require('../queues/notificationQueue')
-const { Tweet, tweetValidation } = require('../models/tweets')
-const redis = require('../config/redis')
-const { wss } = require('../wsServer')
-const mediaQueue = require('../queues/mediaQueue')
-const ObjectId = require('mongoose').Types.ObjectId
-const { Comment, commentValidation } = require('../models/comments')
-const { Like } = require('../models/likes')
-const { User } = require('../models/users')
+/**
+ * Contrôleur pour la gestion des tweets
+ * Gère la création, modification, suppression et interaction avec les tweets
+ */
+const { notificationQueue, addNotificationToQueue } = require('../queues/notificationQueue')  // File d'attente pour les notifications
+const { Tweet, tweetValidation } = require('../models/tweets')  // Modèle et validation des tweets
+const redis = require('../config/redis')  // Client Redis pour la mise en cache
+const { wss } = require('../wsServer')  // Serveur WebSocket pour les communications en temps réel
+const mediaQueue = require('../queues/mediaQueue')  // File d'attente pour le traitement des médias
+const ObjectId = require('mongoose').Types.ObjectId  // Utilitaire pour valider les IDs MongoDB
+const { Comment, commentValidation } = require('../models/comments')  // Modèle et validation des commentaires
+const { Like } = require('../models/likes')  // Modèle des likes
+const { User } = require('../models/users')  // Modèle des utilisateurs
 
+/**
+ * Classe contrôleur avec méthodes statiques pour gérer les tweets
+ */
 class tweetController {
     /**
-     * 
-     * @param {*} req 
-     * @param {*} res 
+     * Crée un nouveau tweet
+     * @static
+     * @async
+     * @param {Object} req - Objet de requête Express
+     * @param {Object} res - Objet de réponse Express
+     * @returns {Object} Le tweet créé
      */
     static async createTweet (req, res) {
         try {
-            // Convertir hashtags en tableau s'il est envoyé sous forme de chaîne
+            // Conversion des hashtags en tableau si nécessaire
             req.body.hashtags = Array.isArray(req.body.hashtags)
             ? req.body.hashtags
             : req.body.hashtags
             ? req.body.hashtags.split(',').map(tag => tag.trim())
             : []
+            
+            // Validation des données d'entrée
             const { error, value } = tweetValidation.validate(req.body)
             if (error) {
               return res.status(400).json({ message: error.details[0].message })
             }
             console.log(value)
+            
             const { content, mentions, hashtags } = req.body;
             console.log(req.user)
             const author = req.user.id;
             let mediaUrl = null;
         
+            // Traitement du média si présent
             if (req.file) {
               mediaUrl = `/uploads/${req.file.filename}`;
         
-              // Ajouter le média à la file d’attente Bull
+              // Ajout du média à la file d'attente pour traitement asynchrone
               await mediaQueue.add({ filePath: mediaUrl });
             }
         
+            // Création du tweet
             const tweet = new Tweet({
               content,
               media: mediaUrl,
@@ -56,6 +71,7 @@ class tweetController {
               author: author,
             });
         
+            // Envoi de la notification à tous les clients connectés
             wss.clients.forEach((client) => client.send(payload));
         
             res.status(201).json(tweet);
@@ -65,18 +81,27 @@ class tweetController {
           }
     }
 
+    /**
+     * Gère le like d'un tweet par un utilisateur
+     * @static
+     * @async
+     * @param {Object} req - Objet de requête Express
+     * @param {Object} res - Objet de réponse Express
+     * @returns {Object} Statut du like et nombre total de likes
+     */
     static async likeTweet (req, res) {
       try {
-        //récupère l'id du tweet depuis l'url et enlève les espaces
+        // Récupération de l'ID du tweet depuis l'URL
         const tweetId = req.params.id.trim();
-        //récupère l'id de l'utilisateur authentifié
+        // Récupération de l'ID de l'utilisateur authentifié
         const userId = req.user.id
         console.log(req.user)
-        //vérifier que le tweet existe
+        
+        // Vérification que le tweet existe
         const tweet = await Tweet.findById(tweetId).select('likes author');;
         if (!tweet) return res.status(404).json({ error: "Tweet non trouvé" });
 
-        /// Vérifier si l'utilisateur a déjà liké ce tweet
+        // Vérification si l'utilisateur a déjà liké ce tweet
         const existingLike = await Like.findOne({ user: userId, tweet: tweetId });
         if (existingLike) {
           // Si déjà liké, retirer le like (dislike)
@@ -84,17 +109,16 @@ class tweetController {
           tweet.likes = tweet.likes.filter(id => id.toString() !== userId);
           await tweet.save();
           return res.json({ success: true, liked: false, likes: tweet.likes.length })
-
         }
       
-        // Ajouter le like
+        // Ajout du like
         const newLike = new Like({ user: userId, tweet: tweetId })
         await newLike.save()
 
         tweet.likes.push(userId)
         await tweet.save()
-        // Ajouter une notification dans la file Bull
-        // await sendNotification(tweet.author.toString(), `${user.username} a liké votre tweet!`);
+        
+        // Ajouter une notification pour l'auteur du tweet
         const message = `${req.user.username} a liké votre tweet!`
         await addNotificationToQueue(tweet.author.toString(), message)
 
@@ -103,27 +127,30 @@ class tweetController {
       } catch(error) {
         return res.status(500).json({ error: "Erreur interne du serveur" })
       }
-
     }
 
     /**
-     * 
-     * @param {*} req 
-     * @param {*} res 
+     * Gère le retweet d'un tweet par un utilisateur
+     * @static
+     * @async
+     * @param {Object} req - Objet de requête Express
+     * @param {Object} res - Objet de réponse Express
+     * @returns {Object} Le retweet créé
      */
     static async reTweet (req, res) {
-      // recuperer l'id du tweet de l''url et enlever espaces
+      // Récupération de l'ID du tweet depuis l'URL
       const tweetId = req.params.id.trim()
-      // recuperer les infos de l'utilisateur authentifier
+      // Récupération des infos de l'utilisateur authentifié
       const user = req.user
       console.log(user)
 
-      //vérifier que le tweet existe
+      // Vérification que le tweet existe
       const tweet = await Tweet.findById(tweetId)
       console.log(tweet)
       if (!tweet) return res.status(404).json({ error: "Tweet non trouvé" });
 
       try {
+        // Création du retweet
         const reTweet = new Tweet({
           content: tweet.content,
           media: tweet.media,
@@ -138,7 +165,7 @@ class tweetController {
         })
         await reTweet.save(); // Sauvegarde du retweet
 
-        // Ajouter le retweet à la liste des retweets de l'original
+        // Ajouter le retweet à la liste des retweets du tweet original
         tweet.retweets.push(reTweet._id);
         await tweet.save(); // Sauvegarde du tweet original
 
@@ -146,44 +173,49 @@ class tweetController {
       } catch(error) {
         return res.status(500).json({ error: "Erreur interne du serveur" });
       }
-
-
     }
 
     /**
-     * 
-     * @param {*} req 
-     * @param {*} res 
+     * Récupère tous les tweets
+     * @static
+     * @async
+     * @param {Object} req - Objet de requête Express
+     * @param {Object} res - Objet de réponse Express
+     * @returns {Object} Liste de tous les tweets
      */
-
     static async getAllTweets (req, res) {
       const tweets = await Tweet.find()
       res.status(200).json(tweets);
     }
 
     /**
-     * 
-     * @param {*} req 
-     * @param {*} res 
+     * Supprime un tweet spécifique
+     * @static
+     * @async
+     * @param {Object} req - Objet de requête Express
+     * @param {Object} res - Objet de réponse Express
+     * @returns {Object} Confirmation de la suppression
      */
     static async deleteTweet(req, res) {
-      // res.json({ msg: "del"})
       const id = req.params.id.trim()
+      // Validation de l'ID
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ message: 'Invalid ID' });
       }
       try {
-        // check tweet exist
+        // Vérification que le tweet existe
           let tweet = await Tweet.findById(id)
           if (!tweet){
               return res.status(404).json({message: `Aucun tweet associé à l'id ${id}`})
           }
-          // verifier que user est bien l'auteur du tweet
+          
+          // Vérification que l'utilisateur est bien l'auteur du tweet
           const user_id = req.user.id
           if (user_id != tweet.author) {
             return res.status(400).json({ message: "Vous n'etes pas autorise a supprimer ce tweet"})
           }
-          // Delete the associated image file if it exists
+          
+          // Suppression du fichier média associé si présent
           if (tweet.media) {
             const imagePath = path.join(__dirname, '..', 'uploads', path.basename(tweet.media));
             if (fs.existsSync(imagePath)) {
@@ -191,6 +223,7 @@ class tweetController {
             }
           }
 
+          // Suppression du tweet
           tweet = await Tweet.deleteOne({_id: id})
           res.status(200).json({ message: 'Tweet deleted successfully' }); 
       } catch(error) {
@@ -199,44 +232,55 @@ class tweetController {
       }
     }
 
+    /**
+     * Ajoute un commentaire à un tweet
+     * @static
+     * @async
+     * @param {Object} req - Objet de requête Express
+     * @param {Object} res - Objet de réponse Express
+     * @returns {Object} Le commentaire créé
+     */
     static async comment(req, res) {
-      // res.json({ msg: "del"})
       const id = req.params.id.trim()
+      // Validation de l'ID
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ message: 'Invalid ID' });
       }
 
       try {
+        // Vérification que le tweet existe
+        const tweet = await Tweet.findById(id).populate("author", "username");
+        if (!tweet) {
+          return res.status(404).json({ message: `Aucun tweet associé à l'id ${id}` });
+        }
         
-           // Vérifier si le tweet existe
-          const tweet = await Tweet.findById(id).populate("author", "username");
-          if (!tweet) {
-            return res.status(404).json({ message: `Aucun tweet associé à l'id ${id}` });
-          }
-          const { error, value } = commentValidation.validate(req.body)
+        // Validation des données du commentaire
+        const { error, value } = commentValidation.validate(req.body)
 
-          if (error) {
-            return res.json({ message: error.details[0].message})
-          }
+        if (error) {
+          return res.json({ message: error.details[0].message})
+        }
 
-          // recup l'id de l'auteur du commentaire
-          const author = req.user.id
-          const newComment = new Comment({
-            content: req.body.content,
-            author,
-            tweet: id
-          })
+        // Récupération de l'ID de l'auteur du commentaire
+        const author = req.user.id
+        // Création du commentaire
+        const newComment = new Comment({
+          content: req.body.content,
+          author,
+          tweet: id
+        })
 
-          tweet.comments.push(newComment._id)
-          await newComment.save()
-          await tweet.save()
+        // Ajout du commentaire au tweet et sauvegarde
+        tweet.comments.push(newComment._id)
+        await newComment.save()
+        await tweet.save()
 
-          // Ajouter une notification dans la file Bull
-          if (tweet.author._id.toString() !== author) {
-            const message = `${req.user.username} a commenté votre tweet.`;
-            await addNotificationToQueue(tweet.author._id.toString(), message);
-          }
-          return res.status(200).json(newComment)
+        // Ajout d'une notification si l'auteur du commentaire n'est pas l'auteur du tweet
+        if (tweet.author._id.toString() !== author) {
+          const message = `${req.user.username} a commenté votre tweet.`;
+          await addNotificationToQueue(tweet.author._id.toString(), message);
+        }
+        return res.status(200).json(newComment)
           
       } catch(error) {
           console.error('Error fetching tweet:', error);
@@ -244,33 +288,42 @@ class tweetController {
       }
     }
 
-     /**
-     * 
-     * @param {*} req 
-     * @param {*} res 
+    /**
+     * Récupère un tweet spécifique
+     * @static
+     * @async
+     * @param {Object} req - Objet de requête Express
+     * @param {Object} res - Objet de réponse Express
+     * @returns {Object} Le tweet demandé
      */
-
     static async getTweet (req, res) {
       const tweets = await Tweet.find()
       res.status(200).json(tweets)
     }
 
-
+    /**
+     * Récupère le fil d'actualité personnalisé de l'utilisateur
+     * @static
+     * @async
+     * @param {Object} req - Objet de requête Express
+     * @param {Object} res - Objet de réponse Express
+     * @returns {Object} Liste de tweets pour le fil d'actualité
+     */
     static async getTimeline(req, res) {
       try {
         const userId = req.user.id;
     
-        // Récupérer les utilisateurs suivis
+        // Récupération des utilisateurs suivis et des bookmarks
         const user = await User.findById(userId).select('followings bookmarks');
         if (!user) return res.status(404).json({ error: "Utilisateur introuvable" });
     
-        // Récupérer les tweets des utilisateurs suivis
+        // Récupération des tweets des utilisateurs suivis
         const followedTweets = await Tweet.find({ author: { $in: user.followings } })
           .populate('author', 'username profile_img')
-          .sort({ createdAt: -1 }) // Trier du plus récent au plus ancien
+          .sort({ createdAt: -1 }) // Tri du plus récent au plus ancien
           .limit(50);
     
-        // Récupérer les tweets likés et retweetés par l'utilisateur
+        // Récupération des tweets likés et retweetés par l'utilisateur
         const likedAndRetweetedTweets = await Like.find({ user: userId })
           .populate({
             path: 'tweet',
@@ -279,7 +332,7 @@ class tweetController {
           .sort({ createdAt: -1 })
           .limit(50);
     
-        // Récupérer les tweets contenant les hashtags les plus consultés
+        // Récupération des tweets contenant les hashtags les plus consultés
         const trendingHashtags = await Tweet.aggregate([
           { $unwind: "$hashtags" },
           { $group: { _id: "$hashtags", count: { $sum: 1 } } },
@@ -291,13 +344,13 @@ class tweetController {
           hashtags: { $in: trendingHashtags.map(tag => tag._id) }
         })
           .populate('author', 'username profile_img')
-          .sort({ engagementScore: -1 }) // Trier par engagement global
+          .sort({ engagementScore: -1 }) // Tri par engagement global
           .limit(50);
     
-        // Fusionner tous les tweets et les trier par date et engagement
+        // Fusion de tous les tweets et tri par date et engagement
         const timelineTweets = [...followedTweets, ...likedAndRetweetedTweets.map(like => like.tweet), ...tweetsWithTrendingHashtags];
     
-        // Supprimer les doublons et trier par engagement (likes + retweets)
+        // Suppression des doublons et tri par engagement (likes + retweets)
         const uniqueTweets = Array.from(new Map(timelineTweets.map(tweet => [tweet._id.toString(), tweet])).values())
           .sort((a, b) => (b.likes.length + b.retweets.length) - (a.likes.length + a.retweets.length));
     
@@ -310,4 +363,5 @@ class tweetController {
     }
 }
 
+// Export du contrôleur pour utilisation dans les routes
 module.exports = tweetController
