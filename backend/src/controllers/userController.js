@@ -169,34 +169,57 @@ class userController {
     static async userTimeline(req, res) {
 
     }
-    
-    static async edit (req, res) {
-      try {
-          //récupère l'id de l'utilisateur authentifié
-        const userId = req.user.id
-        const { bio } = req.body
-        // Gerer image upload
-        const profile_img = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : null
-        let user = user.findById(userId)
-        if (!user) {
-          return res.statut(400).json({ message: "user not found"})
+
+    static async edit(req, res) {
+        try {
+            console.log(req.user);
+            // Check if user is authenticated
+            if (!req.user) {
+                console.error('Authentication error: req.user or req.user.id is undefined', {
+                    user: req.user,
+                    headers: req.headers
+                });
+                return res.status(401).json({ message: "Authentication failed - user not identified" });
+            }
+
+            // Get user ID from authenticated request
+            const userId = req.user.id;
+            console.log('Processing update for user ID:', userId);
+
+            // Extract data from request
+            const { bio } = req.body;
+            console.log('Update payload:', { bio, hasFile: !!req.file });
+
+            // Handle image upload
+            const profile_img = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : null;
+
+            // Find the user by ID
+            let user = await User.findById(userId);
+
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
+            // Update fields if provided
+            if (bio !== undefined) user.bio = bio;
+            if (profile_img) user.profile_img = profile_img;
+
+            if (!user.handle && user.username) {
+                user.handle = user.username.toLowerCase().replace(/\s+/g, '_');
+            }
+
+            // Save changes
+            await user.save();
+
+            // Return updated user
+            res.status(200).json({
+                message: "Profile updated successfully",
+                user
+            });
+        } catch (error) {
+            console.error('Error editing profile:', error);
+            res.status(500).json({ message: 'Internal server error', error: error.message });
         }
-        // Mise à jour des champs fournis
-        if (bio) user.bio = bio;
-        if (profile_img) user.profile_img = profile_img;
-
-        // Sauvegarde les modifications
-        await user.save();
-
-        // Renvoie l'utilisateur mis à jour
-        res.status(200).json({
-            message: "Profile updated successfully",
-            user
-        });
-      } catch(error) {
-        console.error('Error editing:', error)
-        res.status(500).json({ message: 'Internal server error' })
-      }
     }
 }
 
