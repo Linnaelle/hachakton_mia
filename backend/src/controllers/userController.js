@@ -134,7 +134,7 @@ class userController {
                 targetUser.followers.push(userId)
                 // ✅ Ajouter une notification pour l'utilisateur suivi
                 const message = `${user.username} vous suit maintenant!`
-                await addNotificationToQueue(argetUser._id.toString(), message)
+                await addNotificationToQueue(targetUser._id.toString(), message)
             }
         
             await user.save();

@@ -1,11 +1,8 @@
 const bcrypt = require('bcryptjs')
 const { Tweet, Like, Comment, User, userValidation } = require('../models')
 const tokenService = require('../services/tokenService')
-const emailService = require('../services/emailService');
+const emailService = require('../services/emailService')
 
-/**
- * Contrôleur pour l'inscription des utilisateurs
- */
 const register = async (req, res) => {
     try {
         const { error, value } = userValidation.validate(req.body)
@@ -16,7 +13,7 @@ const register = async (req, res) => {
         const { username, email, password } = value
         
         const userExists = await User.findOne({ 
-        $or: [{ email }, { username }] 
+            $or: [{ email }, { username }] 
         });
         
         if (userExists) {
@@ -29,30 +26,38 @@ const register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt)
         const verificationToken = emailService.generateToken()
         const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+        const profile_img = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : null
+        let baseHandle = req.body.username.toLowerCase().replace(/\s+/g, '_')
+        let handle = baseHandle;
+        let count = 1;
+
+        while (await User.findOne({ handle: handle })) {
+            handle = `${baseHandle}${count++}`;
+        }
         
         const newUser = await User.create({
             username,
             email,
             password: hashedPassword,
             bio: '',
-            profile_img: 'default-profile.png',
-            banniere_img: 'default-banner.png',
+            profile_img,
+            banniere_img: null,
             followers: [],
             bookmarks: [],
             verificationToken,
             verificationTokenExpires,
-            isEmailVerified: false
+            isEmailVerified: false,
+            handle
         })
 
         const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`
 
         try {
-            await emailService.sendVerificationEmail(newUser, verificationUrl);
+            await emailService.sendVerificationEmail(newUser, verificationUrl)
         } catch (emailError) {
-            console.error('Erreur lors de l\'envoi de l\'email:', emailError);
+            console.error('Erreur lors de l\'envoi de l\'email:', emailError)
         }
-
-        const { accessToken, refreshToken } = await tokenService.generateTokens(newUser)
         
         res.status(201).json({
             message: 'Utilisateur créé avec succès. Veuillez vérifier votre email.',
@@ -62,10 +67,6 @@ const register = async (req, res) => {
                 email: newUser.email,
                 profilePicture: newUser.profile_img,
                 isEmailVerified: newUser.isEmailVerified
-            },
-            tokens: {
-                accessToken,
-                refreshToken
             }
         })
     } catch (error) {
@@ -74,9 +75,6 @@ const register = async (req, res) => {
     }
 }
 
-/**
- * Contrôleur pour la connexion des utilisateurs
- */
 const login = async (req, res) => {
     try {
         const { email, password } = req.body
@@ -95,6 +93,14 @@ const login = async (req, res) => {
         
         if (!isMatch) {
             return res.status(401).json({ message: 'Email ou mot de passe incorrect' })
+        }
+
+        if (!user.isEmailVerified) {
+            return res.status(403).json({ 
+                message: 'Veuillez vérifier votre adresse email avant de vous connecter',
+                verificationRequired: true,
+                userId: user._id
+            });
         }
         
         const { accessToken, refreshToken } = await tokenService.generateTokens(user)
@@ -119,9 +125,6 @@ const login = async (req, res) => {
     }
 }
 
-/**
- * Contrôleur pour la déconnexion
- */
 const logout = async (req, res) => {
     try {
         const token = req.headers.authorization.split(' ')[1]
@@ -137,9 +140,6 @@ const logout = async (req, res) => {
     }
 }
 
-/**
- * Contrôleur pour récupérer les informations de l'utilisateur connecté
- */
 const getMe = async (req, res) => {
     try {
         const user = await User.findById(req.user.id)
@@ -158,7 +158,8 @@ const getMe = async (req, res) => {
             bio: user.bio,
             followers: user.followers.length,
             following: user.following ? user.following.length : 0,
-            createdAt: user.createdAt
+            createdAt: user.createdAt,
+            isEmailVerified: user.isEmailVerified,
         }
         });
     } catch (error) {
@@ -167,9 +168,6 @@ const getMe = async (req, res) => {
     }
 }
 
-/**
- * Contrôleur pour rafraîchir le token d'accès avec un token de rafraîchissement
- */
 const refreshToken = async (req, res) => {
     try {
         const { refreshToken } = req.body
@@ -197,94 +195,6 @@ const refreshToken = async (req, res) => {
     }
 }
 
-const verifyEmail = async (req, res) => {
-    try {
-        const { token } = req.params
-        
-        const user = await User.findOne({
-            verificationToken: token,
-            verificationTokenExpires: { $gt: Date.now() }
-        })
-        
-        if (!user) {
-            return res.status(400).json({ message: 'Token de vérification invalide ou expiré' })
-        }
-        
-        user.isEmailVerified = true
-        user.verificationToken = undefined
-        user.verificationTokenExpires = undefined
-        await user.save()
-        
-        res.status(200).json({ message: 'Email vérifié avec succès' })
-    } catch (error) {
-        console.error('Erreur lors de la vérification de l\'email:', error)
-        res.status(500).json({ message: 'Erreur serveur' })
-    }
-}
-  
-const forgotPassword = async (req, res) => {
-    try {
-        const { email } = req.body
-        
-        const user = await User.findOne({ email })
-        
-        if (!user) {
-            return res.status(404).json({ message: 'Aucun compte associé à cet email' })
-        }
-        
-        const resetToken = emailService.generateToken()
-        const resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000)
-        
-        user.resetPasswordToken = resetToken
-        user.resetPasswordExpires = resetTokenExpires
-        await user.save()
-        
-        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
-        
-        try {
-            await emailService.sendPasswordResetEmail(user, resetUrl)
-          } catch (emailError) {
-            console.error('Erreur lors de l\'envoi de l\'email de réinitialisation:', emailError)
-          }
-        
-        res.status(200).json({ message: 'Email de réinitialisation envoyé' })
-    } catch (error) {
-        console.error('Erreur lors de la demande de réinitialisation:', error)
-        res.status(500).json({ message: 'Erreur serveur' })
-    }
-}
-  
-const resetPassword = async (req, res) => {
-    try {
-        const { token, newPassword } = req.body
-        
-        const user = await User.findOne({
-            resetPasswordToken: token,
-            resetPasswordExpires: { $gt: Date.now() }
-        })
-        
-        if (!user) {
-            return res.status(400).json({ message: 'Token de réinitialisation invalide ou expiré' })
-        }
-        
-        const salt = await bcrypt.genSalt(10)
-        const hashedPassword = await bcrypt.hash(newPassword, salt)
-        
-        user.password = hashedPassword
-        user.resetPasswordToken = undefined
-        user.resetPasswordExpires = undefined
-        await user.save()
-        
-        res.status(200).json({ message: 'Mot de passe réinitialisé avec succès' })
-    } catch (error) {
-        console.error('Erreur lors de la réinitialisation du mot de passe:', error)
-        res.status(500).json({ message: 'Erreur serveur' })
-    }
-}
-
-/**
- * Contrôleur pour supprimer un compte utilisateur
- */
 const deleteAccount = async (req, res) => {
     try {
         const userId = req.user.id
@@ -320,46 +230,11 @@ const deleteAccount = async (req, res) => {
     }
 }
 
-const resendVerificationEmail = async (req, res) => {
-    try {
-        const userId = req.user.id
-        const user = await User.findById(userId)
-        
-        if (!user) {
-            return res.status(404).json({ message: 'Utilisateur non trouvé' })
-        }
-        
-        if (user.isEmailVerified) {
-            return res.status(400).json({ message: 'Votre email est déjà vérifié' })
-        }
-        
-        const verificationToken = emailService.generateToken()
-        const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
-        
-        user.verificationToken = verificationToken
-        user.verificationTokenExpires = verificationTokenExpires
-        await user.save()
-        
-        const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`
-        
-        await emailService.sendVerificationEmail(user, verificationUrl)
-        
-        res.status(200).json({ message: 'Email de vérification renvoyé avec succès' })
-    } catch (error) {
-        console.error('Erreur lors du renvoi de l\'email de vérification:', error)
-        res.status(500).json({ message: 'Erreur serveur' })
-    }
-}
-
 module.exports = {
     register,
     login,
     logout,
     getMe,
     refreshToken,
-    deleteAccount,
-    verifyEmail,
-    forgotPassword,
-    resetPassword,
-    resendVerificationEmail
+    deleteAccount
 }
