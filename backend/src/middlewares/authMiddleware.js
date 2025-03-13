@@ -4,7 +4,6 @@ const { User } = require('../models');
 const authenticateJWT = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization
-    
     if (!authHeader) {
       return res.status(401).json({ message: 'Accès non autorisé. Token manquant.' })
     }
@@ -13,9 +12,9 @@ const authenticateJWT = async (req, res, next) => {
     console.log(token)
   
     const decoded = await verifyToken(token)
-    
+    console.log(decoded)
     const user = await User.findById(decoded.id)
-    
+    console.log(user)
     if (!user) {
       return res.status(401).json({ message: 'Utilisateur non trouvé.' })
     }
