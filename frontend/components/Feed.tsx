@@ -23,7 +23,6 @@ const GET_TWEETS = gql`
       createdAt
       comments
       author {
-        profile_img
         id
         username
       }

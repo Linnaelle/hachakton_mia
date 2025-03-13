@@ -13,7 +13,7 @@ interface TweetData {
     content: string;
     time: string;
     isFollowing: boolean;
-    profile_img: string;
+    profileImage: string;
     onFollowToggle: () => void;
 }
 

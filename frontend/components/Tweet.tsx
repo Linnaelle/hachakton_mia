@@ -30,7 +30,6 @@ interface TweetProps {
   isRetweeted: boolean
   comments: [string]
   author: {
-    profile_img: string | undefined;
     id: string;
     username: string
   },
@@ -40,7 +39,7 @@ interface TweetProps {
 }
  
 export default function Tweet({
-   id, content, createdAt, isFollowing, author, isLiked, likes,
+   id, content, createdAt, isFollowing, profile_img, author, isLiked, likes,
    retweets, isRetweeted, comments
   }: TweetProps) {
   const [liked, setLiked] = useState(isLiked)
@@ -139,7 +138,7 @@ export default function Tweet({
   <div className="p-4 hover:bg-gray-50 transition-colors cursor-pointer">
     <div className="flex gap-3">
       <img
-        src={author.profile_img}
+        src={profile_img}
         alt={`${author.username}'s profile`}
         className="w-12 h-12 rounded-full object-cover"
       />
