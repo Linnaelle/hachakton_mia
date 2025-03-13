@@ -181,7 +181,18 @@ class userController {
         if (!user) {
           return res.statut(400).json({ message: "user not found"})
         }
-        
+        // Mise à jour des champs fournis
+        if (bio) user.bio = bio;
+        if (profile_img) user.profile_img = profile_img;
+
+        // Sauvegarde les modifications
+        await user.save();
+
+        // Renvoie l'utilisateur mis à jour
+        res.status(200).json({
+            message: "Profile updated successfully",
+            user
+        });
       } catch(error) {
         console.error('Error editing:', error)
         res.status(500).json({ message: 'Internal server error' })

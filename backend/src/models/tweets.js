@@ -30,6 +30,17 @@ const tweetValidation = Joi.object({
             'string.empty': 'Contenu ne peut pas être vide',
             'string.max': 'Contenu ne peut pas dépasser {#limit} caractères',
             'any.required': 'Contenu est requis'
-    })
+    }),
+    hashtags: Joi.array().items(Joi.string().trim().max(50)) // Ajout de hashtags
+        .messages({
+            'array.base': 'Hashtags doit être un tableau',
+            'string.base': 'Chaque hashtag doit être une chaîne de caractères',
+            'string.max': 'Chaque hashtag ne peut pas dépasser {#limit} caractères'
+        }),
+    mentions: Joi.array().items(objectId) // Validation des mentions comme des ObjectId
+        .messages({
+            'array.base': 'Mentions doit être un tableau d\'ID utilisateur'
+        }),
+    media: Joi.string().optional() // Permettre une URL de média optionnelle
 })
 module.exports = { Tweet, tweetValidation }

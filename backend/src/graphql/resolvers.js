@@ -2,7 +2,7 @@ const redis = require('../config/redis')
 const esClient = require('../utils/elasticsearchClient')
 const { Tweet } = require('../models/tweets')
 const { generateAccessToken, verifyToken } = require('../utils/auth')
-const { generateToken } = require('../services/tokenService')
+const { generateTokens } = require('../services/tokenService')
 const bcrypt = require('bcryptjs')
 const fs = require('fs')
 const path = require('path')
@@ -126,7 +126,11 @@ const resolvers = {
     
       // Éliminer les doublons
       const uniqueTweets = Array.from(
-        new Map(timelineTweets.map((tweet) => [tweet._id.toString(), tweet])).values()
+        new Map(
+          timelineTweets
+            .filter(tweet => tweet && tweet._id) // ✅ Éviter les valeurs nulles
+            .map((tweet) => [tweet._id.toString(), tweet])
+        ).values()
       );
     
       const retweetedIds = await Tweet.find({
@@ -281,13 +285,11 @@ const resolvers = {
     },
     reTweet: async (_, { tweetId }, { req }) => {
       try {
-        // Vérifier l'authentification de l'utilisateur
-        const user = await verifyToken(req);
-        if (!user) throw new Error("Authentification requise");
-    
+        const user = await verifyToken(req)
+        if (!user) throw new Error("Requiert authentification")
         // Vérifier que le tweet existe
         const tweet = await Tweet.findById(tweetId);
-        if (!tweet) throw new Error("Tweet non trouvé");
+        if (!tweet) throw new Error("Tweet non trouvé")
     
         // Vérifier si l'utilisateur a déjà retweeté ce tweet
         const existingRetweet = await Tweet.findOne({
@@ -399,7 +401,8 @@ const resolvers = {
         const match = await bcrypt.compare(password, user.password);
         if (!match) throw new Error("Mot de passe incorrect");
   
-        const token = generateAccessToken(user);
+        const { accessToken: token } = await generateTokens(user);
+        console.log(token);
         redis.set(`token_${user._id}`, token, 'EX', 7200);
         return { ...user._doc, id: user._id, token };
     },
