@@ -40,7 +40,7 @@ export default function SignupPage() {
                 throw new Error(data.message || 'Registration failed');
             }
 
-            router.push('/profile');
+            router.push('/login');
         } catch (err) {
             console.log(err)
             setError(err.message);

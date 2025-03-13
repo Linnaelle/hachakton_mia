@@ -6,10 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="77d84cb1-ed73-4667-bdfb-bd3a4380c429" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/controllers/tweetController.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/controllers/tweetController.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/middlewares/authMiddleware.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/middlewares/authMiddleware.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/models/tweets.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/models/tweets.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/components/Feed.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/components/Feed.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/app/signup/page.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/app/signup/page.jsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,7 +31,7 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;fix__frontend&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;D:/Ipssi/hachakton_mia/backend&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
@@ -47,7 +44,7 @@
     &quot;npm.dev.executor&quot;: &quot;Run&quot;,
     &quot;npm.front.executor&quot;: &quot;Run&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;settings.nodejs&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;D:\\AAATravail\\hachakton_mia\\frontend\\node_modules\\typescript\\lib&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;D:\\Ipssi\\hachakton_mia\\frontend\\node_modules\\typescript\\lib&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
@@ -57,7 +54,7 @@
       <recent name="D:\AAATravail\hachakton_mia\backend" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.back">
+  <component name="RunManager" selected="npm.front">
     <configuration name="back" type="js.build_tools.npm" temporary="true">
       <package-json value="$PROJECT_DIR$/backend/package.json" />
       <command value="run" />
@@ -84,15 +81,15 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="npm.back" />
         <item itemvalue="npm.front" />
+        <item itemvalue="npm.back" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-822845ee3bb5-JavaScript-WS-243.23654.157" />
+        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-WS-243.25659.40" />
       </set>
     </attachedChunks>
   </component>
@@ -109,6 +106,8 @@
       <workItem from="1741825698710" duration="520000" />
       <workItem from="1741826581492" duration="3792000" />
       <workItem from="1741859948618" duration="4150000" />
+      <workItem from="1741890141427" duration="1926000" />
+      <workItem from="1741892718092" duration="497000" />
     </task>
     <servers />
   </component>

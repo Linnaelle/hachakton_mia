@@ -35,7 +35,7 @@ export default function PageMotDePasseOublie() {
             setSuccess('Un lien de réinitialisation de mot de passe a été envoyé à votre email.')
             
             setTimeout(() => {
-                router.push('/connexion')
+                router.push('/login')
             }, 3000);
 
         } catch (error: unknown) {
@@ -89,7 +89,7 @@ export default function PageMotDePasseOublie() {
                 </form>
 
                 <div className="text-center mt-4">
-                    <a href="/connexion" className="text-blue-500 hover:underline">Retour à la connexion</a>
+                    <a href="/login" className="text-blue-500 hover:underline">Retour à la connexion</a>
                 </div>
             </div>
         </div>
