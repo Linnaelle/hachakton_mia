@@ -9,13 +9,36 @@ import { useAppContext } from '../context/appContext';
 
 
 const GET_USER_INFO = gql`
-  query GetTweets {
+  query User {
     userTimeline {
-      user
-      tweets
-      comments
-      likedTweets
-      bookmarks
+      user {
+        id
+        username
+        email
+        profile_img
+        bio
+      }
+      tweets {
+        id
+        content
+        media
+        createdAt
+        likes {
+          id
+        }
+      }
+      comments {
+        id
+        content
+      }
+      likedTweets {
+        id
+        content
+      }
+      bookmarks {
+        id
+        content
+      }
     }
   }
 `;
@@ -27,13 +50,9 @@ export default function ProfilePage() {
     // Récupération des tweets
     const { data, loading, error } = useQuery(GET_USER_INFO, {
         fetchPolicy: "cache-and-network", // Évite d'afficher des données obsolètes
-        context: {
-            headers: {
-                Authorization: `Bearer ${appState?.token}`,
-            }
-        }
     });
     if (data) { console.log(data)}
+    if (error) { console.log(error)}
 
     function handleFollow() {
         //Why would you want to follow yourself ?
