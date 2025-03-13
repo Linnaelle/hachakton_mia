@@ -1,4 +1,8 @@
-﻿'use client';
+﻿/**
+ * Page de connexion
+ * Permet à l'utilisateur de se connecter à l'application
+ */
+'use client';
 
 import { useEffect, useState } from 'react'
 import { useAppContext } from '../context/appContext'
@@ -7,19 +11,33 @@ import { LOGIN_MUTATION } from "../graphql/mutations"
 import { LoginResponse, LoginVariables } from "../type/auth"
 import { useMutation } from "@apollo/client"
 
+/**
+ * Composant de la page de connexion
+ * Gère le formulaire de connexion et l'authentification via GraphQL
+ * 
+ * @returns {JSX.Element} - Composant rendu
+ */
 export default function LoginPage() {
+    // États pour gérer le formulaire
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errorMessage, setErrorMessage] = useState('')
+    
+    // Hook Apollo pour la mutation de connexion
     const [login, { data, loading, error }] = useMutation(LOGIN_MUTATION)
 
+    // Hooks pour la navigation et le contexte global
     const router = useRouter()
     const { appState, setUser, isLoading, setIsLoading } = useAppContext()
 
+    /**
+     * Gère la soumission du formulaire de connexion
+     * @param {React.FormEvent} e - Événement de soumission du formulaire
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Form validation
+        // Validation du formulaire
         if (!email || !password) {
             setErrorMessage('Please fill in both fields');
             return;
@@ -28,6 +46,7 @@ export default function LoginPage() {
         setErrorMessage('');
 
         try {
+            // Version commentée: méthode alternative utilisant l'API REST
             // // Make a POST request to the login endpoint
             // const response = await fetch('http://localhost:5000/api/auth/login', {
             //     method: 'POST',
@@ -54,14 +73,17 @@ export default function LoginPage() {
             // } else {
             //     setErrorMessage('Invalid response from server');
             // }
+            
+            // Utilisation de la mutation GraphQL pour la connexion
             const { data, loading } = await login({ variables: { email, password } })
             console.log(loading)
+            
+            // Si la connexion réussit, mise à jour du contexte et redirection
             if (data) {
                 router.replace('/')
-                // Destructuration de l'objet
+                // Destructuration de l'objet pour séparer le token des autres données utilisateur
                 const { token, ...user } = data.login
-                setUser(user,token)
-                
+                setUser(user, token)
             }
         } catch (error) {
             console.error("Login Failed:", error.message);
@@ -74,15 +96,16 @@ export default function LoginPage() {
             <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-md">
                 <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">Login</h1>
 
-                {/* Error message */}
+                {/* Affichage des erreurs */}
                 {error && (
                     <div className="text-red-500 text-sm text-center mb-4">
                         {error.message}
                     </div>
                 )}
 
+                {/* Formulaire de connexion */}
                 <form onSubmit={handleSubmit}>
-                    {/* Email Input */}
+                    {/* Champ pour l'email */}
                     <div className="mb-4">
                         <label htmlFor="email" className="block text-gray-600">Email</label>
                         <input
@@ -95,7 +118,7 @@ export default function LoginPage() {
                         />
                     </div>
 
-                    {/* Password Input */}
+                    {/* Champ pour le mot de passe */}
                     <div className="mb-6">
                         <label htmlFor="password" className="block text-gray-600">Password</label>
                         <input
@@ -108,7 +131,7 @@ export default function LoginPage() {
                         />
                     </div>
 
-                    {/* Submit Button */}
+                    {/* Bouton de soumission */}
                     <button
                         type="submit"
                         className="w-full py-3 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition duration-200"
@@ -118,12 +141,12 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                {/* Forgot Password Link */}
+                {/* Lien pour mot de passe oublié */}
                 <div className="mt-4 text-center">
                     <a href="/forgot-password" className="text-sm text-blue-500 hover:underline">Forgot your password?</a>
                 </div>
 
-                {/* Login Link */}
+                {/* Lien pour l'inscription */}
                 <div className="mt-4 text-center">
                     <p className="text-sm text-gray-500">Don't have an account yet? <a href="/signup" className="text-blue-500 hover:underline">Sign up here</a></p>
                 </div>

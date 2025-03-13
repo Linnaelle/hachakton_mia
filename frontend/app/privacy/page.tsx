@@ -1,14 +1,26 @@
-﻿'use client';
+﻿/**
+ * Page de politique de confidentialité
+ * Affiche les informations sur l'utilisation des données personnelles
+ * Note: Le contenu est humoristique et ne doit pas être utilisé pour une application réelle
+ */
+'use client';
 
+/**
+ * Composant de la page de politique de confidentialité
+ * Présente les différentes sections de la politique
+ * 
+ * @returns {JSX.Element} - Composant rendu
+ */
 export default function PrivacyPage() {
     return (
         <div className="min-h-screen bg-gray-100 text-gray-900 pt-22">
             <div className="max-w-4xl mx-auto p-6">
-                {/* Title */}
+                {/* Titre de la page */}
                 <h1 className="text-3xl font-bold text-center text-blue-600 mb-8">Privacy Policy</h1>
 
-                {/* Content */}
+                {/* Contenu structuré en sections */}
                 <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
+                    {/* Introduction */}
                     <section>
                         <h2 className="text-2xl font-semibold text-gray-800">Introduction</h2>
                         <p className="text-gray-600">
@@ -17,6 +29,7 @@ export default function PrivacyPage() {
                         </p>
                     </section>
 
+                    {/* Informations collectées */}
                     <section>
                         <h2 className="text-2xl font-semibold text-gray-800">Information We Collect</h2>
                         <p className="text-gray-600">
@@ -30,6 +43,7 @@ export default function PrivacyPage() {
                         </ul>
                     </section>
 
+                    {/* Utilisation des informations */}
                     <section>
                         <h2 className="text-2xl font-semibold text-gray-800">How We Use Your Information</h2>
                         <p className="text-gray-600">
@@ -43,6 +57,7 @@ export default function PrivacyPage() {
                         </ul>
                     </section>
 
+                    {/* Sécurité des données */}
                     <section>
                         <h2 className="text-2xl font-semibold text-gray-800">Data Security</h2>
                         <p className="text-gray-600">
@@ -50,6 +65,7 @@ export default function PrivacyPage() {
                         </p>
                     </section>
 
+                    {/* Droits des utilisateurs */}
                     <section>
                         <h2 className="text-2xl font-semibold text-gray-800">Your Rights</h2>
                         <p className="text-gray-600">
@@ -62,6 +78,7 @@ export default function PrivacyPage() {
                         </ul>
                     </section>
 
+                    {/* Modifications de la politique */}
                     <section>
                         <h2 className="text-2xl font-semibold text-gray-800">Changes to This Policy</h2>
                         <p className="text-gray-600">
@@ -69,6 +86,7 @@ export default function PrivacyPage() {
                         </p>
                     </section>
 
+                    {/* Contact */}
                     <section>
                         <h2 className="text-2xl font-semibold text-gray-800">Contact Us</h2>
                         <p className="text-gray-600">

@@ -1,4 +1,8 @@
-﻿'use client';
+﻿/**
+ * Page d'édition de profil
+ * Permet à l'utilisateur de modifier ses informations de profil
+ */
+'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -6,7 +10,9 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { useAppContext } from '../context/appContext';
 import { gql, useQuery } from "@apollo/client";
 
-// GraphQL Query to get user info
+/**
+ * Requête GraphQL pour récupérer les informations de l'utilisateur connecté
+ */
 const GET_USER_INFO = gql`
   query User {
     userTimeline {
@@ -21,28 +27,40 @@ const GET_USER_INFO = gql`
   }
 `;
 
+/**
+ * Composant de la page d'édition de profil
+ * @returns {JSX.Element} - Composant rendu
+ */
 export default function EditProfilePage() {
+    // Hook de navigation
     const router = useRouter();
+    // Contexte global de l'application
     const { appState, setUser } = useAppContext();
+    // Référence pour l'input de fichier caché
     const fileInputRef = useRef<HTMLInputElement>(null);
+    
+    // États pour gérer le formulaire et les messages
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
-
-    // Local state for form handling
     const [bio, setBio] = useState('');
     const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
     const [profilePicPreview, setProfilePicPreview] = useState<string>('');
 
-    // Fetch user data using GraphQL
+    /**
+     * Requête GraphQL pour récupérer les données utilisateur
+     * Utilise cache-and-network pour toujours avoir des données à jour
+     */
     const { data, loading: queryLoading, refetch } = useQuery(GET_USER_INFO, {
         fetchPolicy: "cache-and-network",
     });
 
-    // Extract user data from query result
+    // Extraction des données utilisateur du résultat de la requête
     const userData = data?.userTimeline?.user || {};
 
-    // Initialize form with user data when it's loaded
+    /**
+     * Effet pour initialiser le formulaire avec les données utilisateur
+     */
     useEffect(() => {
         if (userData) {
             setBio(userData.bio || '');
@@ -50,40 +68,50 @@ export default function EditProfilePage() {
         }
     }, [userData]);
 
-    // Handle bio input changes
+    /**
+     * Gère les changements dans le champ de biographie
+     * @param {React.ChangeEvent<HTMLTextAreaElement>} e - Événement de changement
+     */
     function handleBioChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
         setBio(e.target.value);
     }
 
-    // Handle profile picture upload
+    /**
+     * Gère la sélection d'une image de profil
+     * @param {React.ChangeEvent<HTMLInputElement>} e - Événement de changement
+     */
     function handleProfilePicChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (file) {
             setProfilePicFile(file);
-            // Create a preview URL
+            // Création d'une URL de prévisualisation
             const imageUrl = URL.createObjectURL(file);
             setProfilePicPreview(imageUrl);
         }
     }
 
-    // Handle form submission with REST API
+    /**
+     * Gère la soumission du formulaire de mise à jour du profil
+     * @async
+     */
     async function handleSave() {
         setIsLoading(true);
         setError(null);
         setSuccess(false);
 
         try {
-            // Create FormData for multipart/form-data submission
+            // Création d'un FormData pour l'envoi multipart
             const formData = new FormData();
-
-            // Add bio to form data
+            
+            // Ajout de la biographie
             formData.append('bio', bio);
 
-            // Add profile image if a new one was selected
+            // Ajout de l'image de profil si une nouvelle a été sélectionnée
             if (profilePicFile) {
                 formData.append('image', profilePicFile);
             }
 
+            // Appel à l'API REST pour mettre à jour le profil
             const response = await fetch('http://localhost:5000/api/users/update', {
                 method: 'PUT',
                 body: formData,
@@ -92,10 +120,11 @@ export default function EditProfilePage() {
                 }
             });
 
-            // Parse response
+            // Analyse de la réponse
             const responseText = await response.text();
             let data;
 
+            // Gestion des erreurs de parsing JSON
             try {
                 data = JSON.parse(responseText);
             } catch (e) {
@@ -103,22 +132,23 @@ export default function EditProfilePage() {
                 throw new Error('Invalid response from server');
             }
 
-            // Handle unsuccessful response
+            // Gestion des erreurs de l'API
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to update profile');
             }
 
-            // Update the user in context if available
+            // Mise à jour des données utilisateur dans le contexte global
             if (setUser && data.user) {
                 setUser(data.user, appState?.token);
             }
 
+            // Affichage du message de succès
             setSuccess(true);
 
-            // Refetch GraphQL data to update the cache
+            // Actualisation des données GraphQL
             refetch();
 
-            // Redirect after short delay to show success message
+            // Redirection vers la page de profil après un court délai
             setTimeout(() => {
                 router.push('/profile');
             }, 1500);
@@ -131,7 +161,7 @@ export default function EditProfilePage() {
         }
     }
 
-    // Loading indicator while fetching user data
+    // Affichage d'un indicateur de chargement pendant la récupération des données
     if (queryLoading && !data) {
         return (
             <div className="min-h-screen flex justify-center items-center">
@@ -144,7 +174,7 @@ export default function EditProfilePage() {
         <div className="min-h-screen bg-gray-100 text-gray-900">
             <div className="max-w-4xl mx-auto p-4">
 
-                {/* Header */}
+                {/* En-tête avec bouton de retour */}
                 <div className="relative bg-white p-6 rounded-lg shadow-md flex items-center">
                     <button onClick={() => router.push('/profile')} className="absolute left-4">
                         <ArrowLeftIcon className="w-6 h-6 text-gray-600 hover:text-gray-800 transition" />
@@ -152,23 +182,23 @@ export default function EditProfilePage() {
                     <h1 className="text-xl font-bold mx-auto">Edit Profile</h1>
                 </div>
 
-                {/* Edit Form */}
+                {/* Formulaire d'édition */}
                 <div className="mt-4 bg-white p-6 rounded-lg shadow-md">
-                    {/* Error Message */}
+                    {/* Message d'erreur */}
                     {error && (
                         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
                             {error}
                         </div>
                     )}
 
-                    {/* Success Message */}
+                    {/* Message de succès */}
                     {success && (
                         <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">
                             Profile updated successfully!
                         </div>
                     )}
 
-                    {/* Profile Picture Upload */}
+                    {/* Section de téléchargement d'image de profil */}
                     <div className="flex flex-col items-center">
                         <label htmlFor="profilePic" className="cursor-pointer">
                             <img
@@ -193,8 +223,9 @@ export default function EditProfilePage() {
                         </button>
                     </div>
 
-                    {/* Form Fields */}
+                    {/* Champs du formulaire */}
                     <div className="mt-6 space-y-4">
+                        {/* Nom d'utilisateur (lecture seule) */}
                         <div>
                             <label className="block text-gray-600 text-sm">Username (Read-only)</label>
                             <input
@@ -205,6 +236,7 @@ export default function EditProfilePage() {
                             />
                         </div>
 
+                        {/* Email (lecture seule) */}
                         <div>
                             <label className="block text-gray-600 text-sm">Email (Read-only)</label>
                             <input
@@ -215,6 +247,7 @@ export default function EditProfilePage() {
                             />
                         </div>
 
+                        {/* Biographie (éditable) */}
                         <div>
                             <label className="block text-gray-600 text-sm">Bio</label>
                             <textarea
@@ -227,7 +260,7 @@ export default function EditProfilePage() {
                         </div>
                     </div>
 
-                    {/* Save Button */}
+                    {/* Bouton de sauvegarde */}
                     <div className="mt-6 flex justify-end">
                         <button
                             onClick={handleSave}

@@ -1,4 +1,8 @@
-﻿"use client";
+﻿/**
+ * Composant de modal pour afficher un tweet et ses commentaires
+ * Permet également d'ajouter des commentaires
+ */
+"use client";
 
 import {
     HeartIcon,
@@ -9,6 +13,10 @@ import {
 import { useRef, useEffect, useState } from "react";
 import { useAppContext } from "@/app/context/appContext";
 
+/**
+ * Interface pour les données d'un tweet
+ * @interface TweetData
+ */
 interface TweetData {
     id: number;
     username: string;
@@ -18,6 +26,10 @@ interface TweetData {
     isFollowing: boolean;
 }
 
+/**
+ * Interface pour les données d'un commentaire
+ * @interface Comment
+ */
 interface Comment {
     id: number;
     content: string;
@@ -31,33 +43,54 @@ interface Comment {
     createdAt: string;
 }
 
+/**
+ * Interface pour les propriétés du composant TweetModal
+ * @interface TweetModalProps
+ */
 interface TweetModalProps {
     tweet: TweetData;
     comments: Comment[];
     onClose: () => void;
 }
 
+/**
+ * Composant modal pour afficher un tweet et ses interactions
+ * @param {TweetModalProps} props - Propriétés du composant
+ * @returns {JSX.Element} - Composant rendu
+ */
 export default function TweetModal({ tweet, comments, onClose }: TweetModalProps) {
+    // États pour la gestion des commentaires
     const [newComment, setNewComment] = useState("");
     const [commentList, setCommentList] = useState<Comment[]>(comments);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Référence pour le champ de saisie de commentaire
     const commentInputRef = useRef<HTMLTextAreaElement>(null);
+    
+    // Contexte global de l'application
     const {appState} = useAppContext();
 
+    /**
+     * Effet pour mettre le focus dans le champ de saisie au montage du modal
+     */
     useEffect(() => {
         if (commentInputRef.current) {
             commentInputRef.current.focus();
         }
     }, []);
 
+    /**
+     * Gère la soumission d'un nouveau commentaire
+     * @async
+     */
     const handleCommentSubmit = async () => {
+        // Vérification qu'il y a un commentaire à soumettre et qu'on n'est pas déjà en train de soumettre
         if (!newComment.trim() || isSubmitting) return;
 
         setIsSubmitting(true);
       
-
-
         try {
+            // Appel à l'API REST pour ajouter un commentaire
             const response = await fetch(`http://localhost:5000/api/tweets/${tweet.id}/comment`, {
                 method: "POST",
                 headers: {
@@ -69,15 +102,17 @@ export default function TweetModal({ tweet, comments, onClose }: TweetModalProps
 
             console.log("Réponse API:", response); // Debug
 
+            // Gestion des erreurs de l'API
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("Erreur API:", errorData);
                 throw new Error(errorData.message || "Erreur lors de l'ajout du commentaire");
             }
 
+            // Ajout du commentaire à la liste locale
             const savedComment = await response.json();
-            setCommentList([savedComment, ...commentList]); // Ajoute le commentaire en haut de la liste
-            setNewComment("");
+            setCommentList([savedComment, ...commentList]); // Ajout en haut de la liste
+            setNewComment(""); // Réinitialisation du champ de saisie
         } catch (error) {
             console.error("Erreur:", error);
             alert(`Impossible d'ajouter le commentaire : ${error.message}`);
@@ -95,6 +130,7 @@ export default function TweetModal({ tweet, comments, onClose }: TweetModalProps
                 className="bg-white w-full max-w-2xl rounded-xl shadow-lg mt-10 relative p-6"
                 onClick={(e) => e.stopPropagation()}
             >
+                {/* Bouton de fermeture */}
                 <button
                     onClick={onClose}
                     className="absolute top-3 left-3 text-gray-500 hover:text-gray-700 transition"
@@ -102,6 +138,7 @@ export default function TweetModal({ tweet, comments, onClose }: TweetModalProps
                     <XMarkIcon className="w-6 h-6" />
                 </button>
 
+                {/* Contenu du tweet */}
                 <div className="border-b pb-4">
                     <div className="flex gap-3">
                         <img
@@ -120,6 +157,7 @@ export default function TweetModal({ tweet, comments, onClose }: TweetModalProps
                     </div>
                 </div>
 
+                {/* Actions sur le tweet (non-fonctionnelles dans le modal) */}
                 <div className="flex justify-around py-3 border-b text-gray-500">
                     <button className="flex items-center gap-2 hover:text-blue-500">
                         <ChatBubbleOvalLeftIcon className="w-5 h-5" />
@@ -135,7 +173,7 @@ export default function TweetModal({ tweet, comments, onClose }: TweetModalProps
                     </button>
                 </div>
 
-                {/* Champ de saisie du commentaire */}
+                {/* Formulaire d'ajout de commentaire */}
                 <div className="pt-4">
                     <h4 className="font-semibold text-lg">Ajouter un commentaire</h4>
                     <textarea
@@ -154,7 +192,7 @@ export default function TweetModal({ tweet, comments, onClose }: TweetModalProps
                     </button>
                 </div>
 
-                {/* Section des commentaires */}
+                {/* Liste des commentaires */}
                 <div className="space-y-4 pt-4">
                     <h4 className="font-semibold text-lg">Commentaires</h4>
                     {commentList.length > 0 ? (
@@ -172,7 +210,7 @@ export default function TweetModal({ tweet, comments, onClose }: TweetModalProps
                             </div>
                         ))
                     ) : (
-                        <p className="text-gray-500">Aucun commentaire pour l’instant.</p>
+                        <p className="text-gray-500">Aucun commentaire pour l'instant.</p>
                     )}
                 </div>
             </div>

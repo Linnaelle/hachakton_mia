@@ -1,20 +1,35 @@
-﻿'use client';
+﻿/**
+ * Composant d'en-tête de l'application
+ * Gère l'affichage de la barre de navigation supérieure avec recherche et menu utilisateur
+ */
+'use client';
 
 import {useState} from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '../context/appContext';
 
+/**
+ * Composant Header réutilisable
+ * @returns {JSX.Element} - Composant rendu
+ */
 export default function Header() {
+    // État pour gérer l'ouverture/fermeture du menu déroulant
     const [menuOpen, setMenuOpen] = useState(false);
+    // Contexte global de l'application pour accéder aux données utilisateur
     const { appState, setUser } = useAppContext();
+    // Hook de navigation
     const router = useRouter();
 
+    /**
+     * Gère la déconnexion de l'utilisateur
+     * @async
+     */
     async function logOut() {
-        // Clear app context
+        // Effacement des données utilisateur du contexte
         setUser(null, null);
 
-        // Call logout route
+        // Appel de l'API de déconnexion
         try {
             const res = await fetch('http://localhost:5000/api/auth/logout', {
                 method: 'POST',
@@ -22,26 +37,26 @@ export default function Header() {
                     'Content-Type': 'application/json',
                 },
             });
-        const data = await res.json();
-        if (!res.ok) {
-            throw new Error(data.message || 'Registration failed');
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || 'Registration failed');
+            }
+        } catch (err) {
+            console.log(err)
         }
-    } catch (err) {
-        console.log(err)
-    }
-        // Close the menu dropdown
+        // Fermeture du menu déroulant
         setMenuOpen(false);
 
-        // Redirect to home page
+        // Redirection vers la page d'accueil
         router.push('/');
     }
 
     return (
         <header className="bg-white shadow-md p-6 flex justify-between items-center fixed top-0 w-full z-50 border-b">
-            {/* Title */}
+            {/* Logo et titre de l'application */}
             <Link href="/" className="text-2xl font-bold text-blue-600">Rettewt</Link>
 
-            {/* Search Bar */}
+            {/* Barre de recherche */}
             <div className="flex-grow mx-4 max-w-lg">
                 <input
                     type="text"
@@ -50,9 +65,10 @@ export default function Header() {
                 />
             </div>
 
-            {/* Profile Dropdown */}
+            {/* Menu utilisateur (dropdown) */}
             <div className="relative">
                 {appState.isLoggedIn ? (
+                    // Si l'utilisateur est connecté : affichage de l'avatar ou des initiales
                     <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center space-x-3">
                         {appState.user?.profile_img ? (
                             <img
@@ -67,12 +83,14 @@ export default function Header() {
                         )}
                     </button>
                 ) : (
+                    // Si l'utilisateur n'est pas connecté : liens de connexion et inscription
                     <div className="flex space-x-4">
                         <Link href="/login" className="text-blue-300 font-semibold">Log In</Link>
                         <Link href="/signup" className="text-blue-600 font-semibold">Sign Up</Link>
                     </div>
                 )}
 
+                {/* Menu déroulant (visible uniquement quand menuOpen est true) */}
                 {menuOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
                         <Link

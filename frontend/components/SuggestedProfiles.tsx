@@ -1,7 +1,15 @@
+/**
+ * Composant de suggestions de profils à suivre
+ * Affiche une liste de profils suggérés que l'utilisateur pourrait vouloir suivre
+ */
 "use client";
 
 import { useState } from "react";
 
+/**
+ * Interface définissant la structure d'un profil suggéré
+ * @interface Profile
+ */
 interface Profile {
   username: string;
   handle: string;
@@ -9,11 +17,14 @@ interface Profile {
   isFollowing: boolean;
 }
 
+/**
+ * Données initiales de profils suggérés (mock data)
+ */
 const initialProfiles: Profile[] = [
   {
     username: "ShawFCB",
     handle: "@fcb_shaw",
-    avatar: "/avatars/shaw.jpg", // Remplace avec une vraie URL
+    avatar: "/avatars/shaw.jpg", // À remplacer par de vraies URLs
     isFollowing: false,
   },
   {
@@ -30,12 +41,22 @@ const initialProfiles: Profile[] = [
   },
 ];
 
+/**
+ * Composant qui affiche les profils suggérés avec possibilité de les suivre
+ * @returns {JSX.Element} - Composant rendu
+ */
 export default function SuggestedProfiles() {
+  // État local pour gérer la liste des profils et leurs statuts
   const [profiles, setProfiles] = useState(initialProfiles);
 
+  /**
+   * Gère l'action de suivre/ne plus suivre un profil
+   * @param {number} index - Index du profil dans le tableau
+   */
   const handleFollowToggle = (index: number) => {
     setProfiles((prevProfiles) =>
         prevProfiles.map((profile, i) =>
+            // Inverse l'état isFollowing uniquement pour le profil concerné
             i === index ? { ...profile, isFollowing: !profile.isFollowing } : profile
         )
     );
@@ -44,8 +65,11 @@ export default function SuggestedProfiles() {
   return (
       <div className="bg-white p-6 rounded-lg shadow-md mt-6">
         <h2 className="font-bold text-gray-900 text-lg mb-3">Who to follow</h2>
+        
+        {/* Liste des profils suggérés */}
         {profiles.map((profile, index) => (
             <div key={index} className="flex items-center justify-between p-3 hover:bg-gray-100 rounded-lg transition">
+              {/* Informations du profil */}
               <div className="flex items-center gap-4">
                 <img src={profile.avatar} alt={profile.username} className="w-12 h-12 rounded-full object-cover border border-gray-300" />
                 <div>
@@ -53,6 +77,8 @@ export default function SuggestedProfiles() {
                   <p className="text-gray-500 text-sm">{profile.handle}</p>
                 </div>
               </div>
+              
+              {/* Bouton pour suivre/ne plus suivre */}
               <button
                   onClick={() => handleFollowToggle(index)}
                   className={`px-5 py-2 text-sm font-medium rounded-full transition-all border border-gray-300 shadow-sm ${
@@ -63,6 +89,8 @@ export default function SuggestedProfiles() {
               </button>
             </div>
         ))}
+        
+        {/* Lien pour voir plus de suggestions */}
         <p className="text-blue-600 text-sm mt-3 cursor-pointer hover:underline">Show more</p>
       </div>
   );

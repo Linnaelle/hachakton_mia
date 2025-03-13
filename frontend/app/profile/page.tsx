@@ -1,4 +1,8 @@
-﻿'use client';
+﻿/**
+ * Page de profil utilisateur
+ * Affiche les informations du profil et les différents contenus de l'utilisateur
+ */
+'use client';
 
 import { useState } from 'react';
 import { PencilIcon } from '@heroicons/react/24/outline';
@@ -7,6 +11,10 @@ import TweetsList from "@/components/TweetList";
 import { gql, useQuery } from "@apollo/client";
 import CommentsList from "@/components/CommentsList";
 
+/**
+ * Requête GraphQL pour récupérer les informations de l'utilisateur connecté
+ * et ses différents contenus (tweets, commentaires, likes, favoris)
+ */
 const GET_USER_INFO = gql`
   query User {
     userTimeline {
@@ -50,18 +58,30 @@ const GET_USER_INFO = gql`
   }
 `;
 
+/**
+ * Composant de la page de profil
+ * Affiche les informations de l'utilisateur et un système d'onglets
+ * pour naviguer entre ses différents contenus
+ * 
+ * @returns {JSX.Element} - Composant rendu
+ */
 export default function ProfilePage() {
+    // État pour gérer l'onglet actif
     const [activeTab, setActiveTab] = useState('posts');
 
-    // Récupération des données utilisateur
+    /**
+     * Requête GraphQL pour récupérer les données de l'utilisateur
+     * fetchPolicy: "cache-and-network" garantit des données à jour tout en utilisant le cache
+     */
     const { data, loading, error } = useQuery(GET_USER_INFO, {
         fetchPolicy: "cache-and-network", // Évite d'afficher des données obsolètes
     });
 
+    // Log des données pour le débogage
     if (data) { console.log(data) }
     if (error) { console.log(error) }
 
-    // Preparing user data
+    // Préparation des données pour l'affichage
     const userData = data?.userTimeline?.user || {};
     const tweetsCount = data?.userTimeline?.tweets?.length || 0;
     const followersCount = userData?.followers?.length || 0;
@@ -70,25 +90,29 @@ export default function ProfilePage() {
     return (
         <div className="min-h-screen bg-gray-100 text-gray-900 pt-22">
             <div className="max-w-4xl mx-auto p-4">
-                {/* Profile Header */}
+                {/* En-tête du profil */}
                 <div className="relative bg-white p-6 rounded-lg shadow-md">
-                    {/* Edit Profile Button in Top-Right Corner */}
+                    {/* Bouton d'édition du profil (coin supérieur droit) */}
                     <Link href="/editProfile">
                         <button className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 transition">
                             <PencilIcon className="w-6 h-6 text-gray-600" />
                         </button>
                     </Link>
 
-                    {/* Profile Info */}
+                    {/* Informations du profil */}
                     <div className="flex items-center space-x-6">
+                        {/* Photo de profil */}
                         <img
                             src={userData.profile_img || "/placeholder-profile.jpg"}
                             alt="Profile"
                             className="w-20 h-20 rounded-full object-cover"
                         />
                         <div>
+                            {/* Nom d'utilisateur et bio */}
                             <h1 className="text-xl font-bold">{userData.username || "Username"}</h1>
                             <p className="text-gray-600">{userData.bio || "You don't have a bio yet."}</p>
+                            
+                            {/* Statistiques (posts, followers, following) */}
                             <div className="mt-2 flex space-x-4 text-sm text-gray-500">
                                 <span><strong>{tweetsCount}</strong> Posts</span>
                                 <span><strong>{followersCount}</strong> Followers</span>
@@ -98,7 +122,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Tabs */}
+                {/* Onglets de navigation */}
                 <div className="mt-4 flex space-x-4 border-b">
                     {['posts', 'comments', 'liked'].map(tab => (
                         <button
@@ -119,8 +143,9 @@ export default function ProfilePage() {
                     </div>
                 )}
 
-                {/* Tab Content */}
+                {/* Contenu des onglets */}
                 <div className="mt-4 bg-white p-4 rounded-lg shadow-sm">
+                    {/* Onglet des tweets */}
                     {activeTab === 'posts' && (
                         <div>
                             <TweetsList
@@ -130,6 +155,7 @@ export default function ProfilePage() {
                         </div>
                     )}
 
+                    {/* Onglet des tweets likés */}
                     {activeTab === 'liked' && (
                         <div>
                             <TweetsList
@@ -139,6 +165,7 @@ export default function ProfilePage() {
                         </div>
                     )}
 
+                    {/* Onglet des commentaires */}
                     {activeTab === 'comments' && (
                         <div>
                             <CommentsList

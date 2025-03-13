@@ -1,4 +1,8 @@
-﻿"use client";
+﻿/**
+ * Composant de liste de tweets
+ * Affiche une liste de tweets avec la possibilité d'ouvrir un tweet spécifique
+ */
+"use client";
 
 import { useState, useEffect } from "react";
 import { useLazyQuery } from "@apollo/client";
@@ -6,6 +10,10 @@ import Tweet from "./Tweet";
 import TweetModal from "./TweetModal";
 import { GET_TWEET } from "../app/graphql/queries";
 
+/**
+ * Interface pour les données d'un tweet
+ * @interface TweetData
+ */
 interface TweetData {
     id: number;
     username: string;
@@ -17,6 +25,10 @@ interface TweetData {
     onFollowToggle: () => void;
 }
 
+/**
+ * Interface pour les données d'un commentaire
+ * @interface Comment
+ */
 interface Comment {
     id_interaction: number;
     content: string;
@@ -25,43 +37,65 @@ interface Comment {
     horodatage: string;
 }
 
+/**
+ * Interface pour les propriétés du composant TweetsList
+ * @interface TweetsListProps
+ */
 interface TweetsListProps {
     tweets: TweetData[];
     loading: boolean;
 }
 
+/**
+ * Composant affichant une liste de tweets avec gestion d'un modal pour afficher les détails
+ * @param {TweetsListProps} props - Propriétés du composant
+ * @returns {JSX.Element} - Composant rendu
+ */
 export default function TweetsList({ tweets, loading }: TweetsListProps) {
+    // État pour le tweet sélectionné (affiché dans le modal)
     const [selectedTweet, setSelectedTweet] = useState<TweetData | null>(null);
+    // État pour les commentaires du tweet sélectionné
     const [comments, setComments] = useState<Comment[]>([]);
 
-    // Utilisation de useLazyQuery pour ne pas exécuter la requête automatiquement
+    /**
+     * Requête GraphQL pour récupérer les détails d'un tweet
+     * fetchPolicy "network-only" pour toujours récupérer les données à jour du serveur
+     */
     const [fetchTweet, { data, loading: tweetLoading, error }] = useLazyQuery(GET_TWEET, {
-        fetchPolicy: "network-only", // Force Apollo à toujours récupérer les données du serveur,
+        fetchPolicy: "network-only",
     });
 
+    /**
+     * Ouvre le modal d'un tweet et charge ses commentaires
+     * @param {TweetData} tweet - Tweet à afficher dans le modal
+     */
     const openTweet = (tweet: TweetData) => {
         setSelectedTweet(tweet);
-        setComments([]); // Réinitialise avant de charger les nouveaux
+        setComments([]); // Réinitialise les commentaires avant d'en charger de nouveaux
         fetchTweet({ variables: { id: tweet.id } });
     };
 
+    /**
+     * Effet pour mettre à jour les commentaires lorsque les données du tweet sont chargées
+     */
     useEffect(() => {
         if (data?.getTweet?.comments) {
             setComments(data.getTweet.comments);
             console.log("Fetched comments:", data.getTweet.comments);
         } else {
-            setComments([]); // Réinitialise les commentaires pour éviter l'affichage des anciens
+            setComments([]); // Réinitialise les commentaires pour éviter d'afficher des anciens
         }
-    }, [data, selectedTweet]); // Ajout de selectedTweet
+    }, [data, selectedTweet]); // Dépendances : data et selectedTweet
 
     return (
         <div>
+            {/* Indicateur de chargement */}
             {loading && <p className="text-center text-gray-500">Loading...</p>}
 
+            {/* Liste des tweets ou message si aucun tweet */}
             {!loading && tweets.length > 0 ? (
                 tweets.map((tweet) => (
                     <div key={tweet.id} onClick={() => openTweet(tweet)}>
-                        {/* <Tweet {...tweet} /> */}
                         <Tweet 
                             {...tweet} 
                         />
@@ -71,6 +105,7 @@ export default function TweetsList({ tweets, loading }: TweetsListProps) {
                 !loading && <p className="text-center text-gray-500">No tweets available</p>
             )}
 
+            {/* Modal de tweet (affiché lorsqu'un tweet est sélectionné) */}
             {selectedTweet && (
                 <TweetModal
                     tweet={selectedTweet}
