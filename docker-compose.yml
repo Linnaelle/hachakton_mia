@@ -47,20 +47,20 @@ services:
     networks:
       - app-network
 
-  # Service Elasticsearch (optionnel, référencé dans le code)
-  elasticsearch:
-    image: elasticsearch:8.17.1
-    container_name: elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
-    volumes:
-      - es_data:/usr/share/elasticsearch/data
-    networks:
-      - app-network
+  # # Service Elasticsearch 
+  # elasticsearch:
+  #   image: elasticsearch:8.17.1
+  #   container_name: elasticsearch
+  #   environment:
+  #     - discovery.type=single-node
+  #     - xpack.security.enabled=false
+  #     - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+  #   ports:
+  #     - "9200:9200"
+  #   volumes:
+  #     - es_data:/usr/share/elasticsearch/data
+  #   networks:
+  #     - app-network
 
   # Service Backend
   backend:
@@ -75,7 +75,7 @@ services:
     depends_on:
       - mongodb
       - redis
-      - elasticsearch
+      # - elasticsearch
     volumes:
       - ./backend:/app
       - /app/node_modules
