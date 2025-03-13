@@ -30,11 +30,7 @@ const tweetValidation = Joi.object({
             'string.empty': 'Contenu ne peut pas être vide',
             'string.max': 'Contenu ne peut pas dépasser {#limit} caractères',
             'any.required': 'Contenu est requis'
-<<<<<<< HEAD
-        }),
-=======
     }),
->>>>>>> timeLineFront
     hashtags: Joi.array().items(Joi.string().trim().max(50)) // Ajout de hashtags
         .messages({
             'array.base': 'Hashtags doit être un tableau',

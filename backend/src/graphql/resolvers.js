@@ -216,12 +216,6 @@ const resolvers = {
     },
     // getUserTweets(userId: ID!): [Tweet!]!
   },
-  // //PERMET DE RECUP TOUS LES TWEETS ASSOCIES QUAND ON QUERY UN USER
-  // User: {
-  //   async tweets(parent) {
-  //     return await Tweet.find({ author: parent.id });
-  //   },
-  // },
 
   Mutation: {
     follow: async (_, { userId }, { req }) => {
@@ -395,20 +389,15 @@ const resolvers = {
     },
 
     login: async (_, { email, password }) => {
-        const user = await User.findOne({ email });
-        if (!user) throw new Error("Utilisateur non trouvé");
+        const user = await User.findOne({ email })
+        if (!user) throw new Error("Utilisateur non trouvé")
   
-        const match = await bcrypt.compare(password, user.password);
-        if (!match) throw new Error("Mot de passe incorrect");
+        const match = await bcrypt.compare(password, user.password)
+        if (!match) throw new Error("Mot de passe incorrect")
   
-<<<<<<< HEAD
-        const {accessToken: token} = await generateTokens(user);
-=======
-        const { accessToken: token } = await generateTokens(user);
-        console.log(token);
->>>>>>> timeLineFront
-        redis.set(`token_${user._id}`, token, 'EX', 7200);
-        return { ...user._doc, id: user._id, token };
+        const { accessToken: token } = await generateTokens(user)
+        redis.set(`token_${user._id}`, token, 'EX', 7200)
+        return { ...user._doc, id: user._id, token }
     },
 
     logout: async (_, __, { req }) => {
