@@ -7,6 +7,7 @@ import { useAppContext } from '../context/appContext';
 
 export default function Header() {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const { appState, setUser } = useAppContext();
     const router = useRouter();
 
@@ -22,13 +23,13 @@ export default function Header() {
                     'Content-Type': 'application/json',
                 },
             });
-        const data = await res.json();
-        if (!res.ok) {
-            throw new Error(data.message || 'Registration failed');
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || 'Registration failed');
+            }
+        } catch (err) {
+            console.log(err)
         }
-    } catch (err) {
-        console.log(err)
-    }
         // Close the menu dropdown
         setMenuOpen(false);
 
@@ -36,19 +37,40 @@ export default function Header() {
         router.push('/');
     }
 
+    // Handle search submission
+    const handleSearch = (e) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            // Navigate to search page with query parameter
+            router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        }
+    };
+
     return (
         <header className="bg-white shadow-md p-6 flex justify-between items-center fixed top-0 w-full z-50 border-b">
             {/* Title */}
             <Link href="/" className="text-2xl font-bold text-blue-600">Rettewt</Link>
 
             {/* Search Bar */}
-            <div className="flex-grow mx-4 max-w-lg">
-                <input
-                    type="text"
-                    placeholder="Search..."
-                    className="w-full p-3 bg-gray-50 text-black border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-            </div>
+            <form onSubmit={handleSearch} className="flex-grow mx-4 max-w-lg">
+                <div className="relative">
+                    <input
+                        type="text"
+                        placeholder="Search tweets or hashtags..."
+                        className="w-full p-3 bg-gray-50 text-black border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <button
+                        type="submit"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-blue-500"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </button>
+                </div>
+            </form>
 
             {/* Profile Dropdown */}
             <div className="relative">
