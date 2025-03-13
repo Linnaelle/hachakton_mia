@@ -53,7 +53,11 @@ class userController {
             }
             let user = await User.findOne({ email: req.body.email })
             if (user) {
-                return res.status(400).json({ message: "User already exist" })
+                return res.status(400).json({ message: "Email already used" })
+            }
+            user = await User.findOne({ username: req.body.username })
+            if (user) {
+                return res.status(400).json({ message: "Username already used" })
             }
              // Hachage du mot de passe avec bcrypt (10 rounds de sel)
             const saltRounds = 10;
@@ -61,12 +65,22 @@ class userController {
 
             // Gerer image upload
             const profile_img = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : null
+            // Générer un handle unique
+            let baseHandle = req.body.username.toLowerCase().replace(/\s+/g, '_'); // Convertir en minuscule et remplacer les espaces
+            let uniqueHandle = baseHandle;
+            let count = 1;
 
+            // Vérifier l'unicité du handle
+            while (await User.findOne({ handle: uniqueHandle })) {
+                uniqueHandle = `${baseHandle}${count++}`;
+            }
             const newUser = new User({
-                username: req.body.username,
-                email: req.body.email,
-                password: hashedPassword,
-                profile_img })
+              username: req.body.username,
+              email: req.body.email,
+              password: hashedPassword,
+              profile_img,
+              handle: uniqueHandle // Assigner le handle généré
+            });
             await newUser.save()
             res.status(201).send(newUser)
 

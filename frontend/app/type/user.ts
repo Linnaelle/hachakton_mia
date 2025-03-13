@@ -4,7 +4,6 @@
     username: string,
     email: string,
     password: string,
-    role: string,
     bio: string
-    profile_pic: string
+    profile_img: string
 }

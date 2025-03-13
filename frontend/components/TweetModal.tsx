@@ -18,11 +18,16 @@ interface TweetData {
 }
 
 interface Comment {
-    id_interaction: number;
+    id: number;
     content: string;
     id_tweet: number;
-    id_utilisateur: number;
-    horodatage: string;
+    author: {
+        id: string;
+        username: string;
+        handle: string;
+        profile_img: string;
+      };
+    createdAt: string;
 }
 
 interface TweetModalProps {
@@ -90,9 +95,9 @@ export default function TweetModal({ tweet, comments, onClose }: TweetModalProps
                     <h4 className="font-semibold text-lg">Comments</h4>
                     {comments.length > 0 ? (
                         comments.map((comment) => (
-                            <div key={comment.id_interaction} className="p-3 border rounded-lg">
+                            <div key={comment.id} className="p-3 border rounded-lg">
                                 <p className="text-gray-700">{comment.content}</p>
-                                <span className="text-gray-500 text-xs">{comment.horodatage}</span>
+                                <span className="text-gray-500 text-xs">{comment.createdAt}</span>
                             </div>
                         ))
                     ) : (

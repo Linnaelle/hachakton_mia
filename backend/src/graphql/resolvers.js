@@ -12,7 +12,8 @@ const { GraphQLUpload } = require('graphql-upload')
 const { User } = require("../models/users")
 const { handleUpload } = require('../utils/graphUpload')
 const { Comment } = require('../models/comments')
-const { sendNotification, notificationQueue } = require("../queues/notificationQueue")
+const { notificationQueue } = require("../queues/notificationQueue")
+const { sendNotification } = require('../wsServer')
 const { Like } = require('../models/likes')
 
 const resolvers = {
@@ -68,23 +69,30 @@ const resolvers = {
       }
     },
     getTimeline: async (_, __, { req }) => {
-      const currentUser = await verifyToken(req)
-      if (!currentUser) throw new Error("Authentification requise")
+      const currentUser = await verifyToken(req);
+      if (!currentUser) throw new Error("Authentification requise");
+      const cacheKey = `timeline:${currentUser.id}`;
+      const cachedTimeline = await redis.get(cacheKey);
     
-      const user = await User.findById(currentUser.id).select('followings bookmarks');
-      if (!user) throw new Error("Utilisateur introuvable")
+      if (cachedTimeline) {
+        console.log("Serving from Redis cache");
+        return JSON.parse(cachedTimeline);
+      }
+    
+      const user = await User.findById(currentUser.id).select("followings bookmarks");
+      if (!user) throw new Error("Utilisateur introuvable");
     
       // Récupérer les tweets des abonnements
       const followedTweets = await Tweet.find({ author: { $in: user.followings } })
-        .populate('author', 'username profile_img')
+        .populate("author", "username handle profile_img")
         .sort({ createdAt: -1 })
         .limit(50);
     
       // Récupérer les tweets likés et retweetés
       const likedAndRetweetedTweets = await Like.find({ user: currentUser.id })
         .populate({
-          path: 'tweet',
-          populate: { path: 'author', select: 'username profile_img' }
+          path: "tweet",
+          populate: { path: "author", select: "username handle profile_img" },
         })
         .sort({ createdAt: -1 })
         .limit(50);
@@ -94,23 +102,56 @@ const resolvers = {
         { $unwind: "$hashtags" },
         { $group: { _id: "$hashtags", count: { $sum: 1 } } },
         { $sort: { count: -1 } },
-        { $limit: 10 }
+        { $limit: 10 },
       ]);
     
       const tweetsWithTrendingHashtags = await Tweet.find({
-        hashtags: { $in: trendingHashtags.map(tag => tag._id) }
+        hashtags: { $in: trendingHashtags.map((tag) => tag._id) },
       })
-        .populate('author', 'username profile_img')
+        .populate("author", "username handle profile_img")
         .sort({ engagementScore: -1 })
         .limit(50);
     
       // Fusionner et trier les tweets
-      const timelineTweets = [...followedTweets, ...likedAndRetweetedTweets.map(like => like.tweet), ...tweetsWithTrendingHashtags];
+      const timelineTweets = [
+        ...followedTweets,
+        ...likedAndRetweetedTweets.map((like) => like.tweet),
+        ...tweetsWithTrendingHashtags,
+      ];
     
-      const uniqueTweets = Array.from(new Map(timelineTweets.map(tweet => [tweet._id.toString(), tweet])).values())
-        .sort((a, b) => (b.likes.length + b.retweets.length) - (a.likes.length + a.retweets.length));
+      // Éliminer les doublons
+      const uniqueTweets = Array.from(
+        new Map(timelineTweets.map((tweet) => [tweet._id.toString(), tweet])).values()
+      );
     
-      return uniqueTweets;
+      const retweetedIds = await Tweet.find({
+        author: currentUser.id,
+        isRetweet: true,
+        originalTweet: { $in: uniqueTweets.map((tweet) => tweet._id.toString()) },
+      }).distinct("originalTweet");
+    
+      const finalTweets = uniqueTweets.map((tweet) => ({
+        id: tweet._id,
+        content: tweet.content,
+        media: tweet.media,
+        createdAt: tweet.createdAt,
+        likes: Array.isArray(tweet.likes) ? tweet.likes.length : 0,
+        retweets: Array.isArray(tweet.retweets) ? tweet.retweets.length : 0,
+        isRetweet: tweet.isRetweet,
+        isLiked: Array.isArray(tweet.likes) && tweet.likes.some((like) => like.toString() === currentUser.id),
+        isRetweeted: retweetedIds.some(id => id.toString() === tweet._id.toString()),
+        isFollowing: user.followings.includes(tweet.author._id.toString()),
+        author: {
+          id: tweet.author._id,
+          username: tweet.author.username,
+          handle: tweet.author.handle,
+          profile_img: tweet.author.profile_img,
+        },
+        comments: tweet.comments,
+      })).sort((a, b) => b.likes + b.retweets - (a.likes + a.retweets));
+    
+      await redis.setex(cacheKey, 60, JSON.stringify(finalTweets)); // Cache pour 60 secondes
+      return finalTweets;
     },
     getUserTweets: async(_, { userId }) => {
       try {
@@ -120,39 +161,26 @@ const resolvers = {
         throw new Error("Erreur lors de la récupération des tweets.");
       }
     },
-    getTimeline: async (_, __, { req }) => {
-      // Vérifie l’authentification
-      const user = await verifyToken(req);
-      if (!user) throw new Error("Non authentifié");
-      // console.log(user)
-      // Récupérer les tweets les plus récents
-      const tweets = await Tweet.find().sort({ createdAt: -1 })
-      .populate("author", "_id username");
-
-      console.log(tweets)
-      return tweets
-    },
     getTweet: async (_, { id }) => {
-      // Vérifier si le tweet est en cache
-      const cachedTweet = await redis.get(`tweet:${id}`)
+      const cachedTweet = await redis.get(`tweet:${id}`);
       if (cachedTweet) {
-        console.log("🟢 Récupéré depuis Redis")
+        console.log("🟢 Récupéré depuis Redis");
         return JSON.parse(cachedTweet);
       }
-
-      // Sinon, récupérer depuis MongoDB
-      const tweet = await Tweet.findById(id).populate('author').populate({
-        path: 'comments',
-        populate: { path: 'author' } // Récupère les auteurs des commentaires
-      })
-
-      if (!tweet) throw new Error("Tweet non trouvé")
-
-      // Mettre en cache avec expiration
-      await redis.set(`tweet:${id}`, JSON.stringify(tweet), "EX", 600)
-
+    
+      const tweet = await Tweet.findById(id)
+        .populate("author", "username handle profile_img")
+        .populate({
+          path: "comments",
+          populate: { path: "author", select: "username handle profile_img" }
+        });
+    
+      if (!tweet) throw new Error("Tweet non trouvé");
+    
+      await redis.set(`tweet:${id}`, JSON.stringify(tweet), "EX", 600);
+    
       console.log("🔴 Récupéré depuis MongoDB");
-      return tweet
+      return tweet;
     },
 
     searchTweets: async (_, { query }) => {
@@ -256,6 +284,29 @@ const resolvers = {
         const tweet = await Tweet.findById(tweetId);
         if (!tweet) throw new Error("Tweet non trouvé");
     
+        // Vérifier si l'utilisateur a déjà retweeté ce tweet
+        const existingRetweet = await Tweet.findOne({
+          originalTweet: tweetId,
+          author: user.id,
+          isRetweet: true,
+        });
+    
+        if (existingRetweet) {
+          // Supprimer le retweet existant
+          await Tweet.findByIdAndDelete(existingRetweet._id);
+          
+          // Supprimer l'ID du retweet de la liste des retweets du tweet original
+          await Tweet.findByIdAndUpdate(tweetId, {
+            $pull: { retweets: existingRetweet._id }
+          });
+    
+          return {
+            success: true,
+            message: "Retweet supprimé",
+            tweet: null
+          };
+        }
+    
         // Créer un nouveau retweet
         const reTweet = new Tweet({
           content: tweet.content,
@@ -276,12 +327,21 @@ const resolvers = {
         tweet.retweets.push(reTweet._id);
         await tweet.save(); // Sauvegarde du tweet original
     
-        return reTweet;
+        return {
+          success: true,
+          message: "Retweet ajouté",
+          tweet: reTweet
+        };
       } catch (error) {
         console.error("Erreur dans reTweet:", error);
-        throw new Error("Erreur interne du serveur");
+        return {
+          success: false,
+          message: "Erreur interne du serveur",
+          tweet: null
+        };
       }
-    },
+    }
+    ,
     async likeTweet(_, { tweetId }, { req }) {
       const user = await verifyToken(req)
       if (!user) throw new Error("Requiert authentification")
