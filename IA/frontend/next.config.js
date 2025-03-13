@@ -1,20 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // Images provenant du backend sont autorisées
-    images: {
-      remotePatterns: [
-        {
-          protocol: 'http',
-          hostname: 'localhost',
-          port: '8000',
-          pathname: '/**',
-        },
-      ],
-      // Permettre les images data URL
-      dangerouslyAllowSVG: true,
-      contentDispositionType: 'attachment',
-      contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    },
-  }
-  
-  module.exports = nextConfig
+  reactStrictMode: true,
+  swcMinify: true,
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_AI_API_URL || 'http://localhost:8000'}/:path*`,
+      },
+    ];
+  },
+};
+
+module.exports = nextConfig;
