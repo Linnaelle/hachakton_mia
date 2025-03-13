@@ -22,9 +22,7 @@ const GET_USER_INFO = gql`
         content
         media
         createdAt
-        likes {
-          id
-        }
+        
         author {
           id
           username
