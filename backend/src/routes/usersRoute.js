@@ -7,7 +7,7 @@ const { getMe } = require('../controllers/authController')
 router.post('/signup', upload.single("image"), userController.signUp)
 router.post('/:id/follow', authenticateJWT, userController.follow)
 
-router.put('/update', upload.single("image"), userController.edit)
+router.put('/update', authenticateJWT, upload.single("image"), userController.edit)
 
 router.get('/me', authenticateJWT, getMe)
 

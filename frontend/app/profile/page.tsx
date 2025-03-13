@@ -90,7 +90,7 @@ export default function ProfilePage() {
                         />
                         <div>
                             <h1 className="text-xl font-bold">{userData.username || "Username"}</h1>
-                            <p className="text-gray-600">{userData.bio || "This is a sample bio."}</p>
+                            <p className="text-gray-600">{userData.bio || "You don't have a bio yet."}</p>
                             <div className="mt-2 flex space-x-4 text-sm text-gray-500">
                                 <span><strong>{tweetsCount}</strong> Posts</span>
                                 <span><strong>{followersCount}</strong> Followers</span>
