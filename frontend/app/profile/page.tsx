@@ -1,32 +1,39 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { PencilIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import TweetsList from "@/components/TweetList";
+import {gql, useQuery} from "@apollo/client";
+import { useAppContext } from '../context/appContext';
 
-interface TweetData {
-    id: number;
-    username: string;
-    handle: string;
-    content: string;
-    time: string;
-    isFollowing: boolean;
-    onFollowToggle: () => void;
-}
+
+const GET_USER_INFO = gql`
+  query GetTweets {
+    userTimeline {
+      user
+      tweets
+      comments
+      likedTweets
+      bookmarks
+    }
+  }
+`;
 
 export default function ProfilePage() {
     const [activeTab, setActiveTab] = useState('posts');
-    const [tweets, setTweets] = useState<TweetData[]>([]);
+    const { appState } = useAppContext();
 
-    useEffect(() => {
-        fetch("/tweet.json")
-            .then((response) => response.json())
-            .then((data) => {
-                setTweets(data.Yours);
-            })
-            .catch((error) => console.error("Erreur lors du chargement des tweets :", error));
-    }, []);
+    // Récupération des tweets
+    const { data, loading, error } = useQuery(GET_USER_INFO, {
+        fetchPolicy: "cache-and-network", // Évite d'afficher des données obsolètes
+        context: {
+            headers: {
+                Authorization: `Bearer ${appState?.token}`,
+            }
+        }
+    });
+    if (data) { console.log(data)}
 
     function handleFollow() {
         //Why would you want to follow yourself ?
@@ -72,11 +79,17 @@ export default function ProfilePage() {
                     ))}
                 </div>
 
+                {/* Message d'erreur en cas de problème */}
+                {error && (
+                    <div className="bg-red-500 text-white p-2 rounded mb-2">
+                        {error.message}
+                    </div>
+                )}
                 {/* Tab Content */}
                 <div className="mt-4 bg-white p-4 rounded-lg shadow-sm">
                     {activeTab === 'posts' && (
                         <div>
-                            <TweetsList TweetList={tweets} />
+                            <TweetsList tweets={data?.userTimeline || []} loading={loading} />
                         </div>
                     )}
                     {activeTab === 'liked' && <div>Liked posts here...</div>}

@@ -54,9 +54,9 @@ export default function Header() {
             <div className="relative">
                 {appState.isLoggedIn ? (
                     <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center space-x-3">
-                        {appState.user?.profile_pic ? (
+                        {appState.user?.profile_img ? (
                             <img
-                                src={appState.user.profile_pic}
+                                src={appState.user.profile_img}
                                 alt="Profile"
                                 className="w-12 h-12 rounded-full border-2 border-gray-300 shadow-md"
                             />
