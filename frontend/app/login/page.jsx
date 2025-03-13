@@ -28,32 +28,7 @@ export default function LoginPage() {
         setErrorMessage('');
 
         try {
-            // // Make a POST request to the login endpoint
-            // const response = await fetch('http://localhost:5000/api/auth/login', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     body: JSON.stringify({ email, password }),
-            // });
-
-            // const data = await response.json();
-
-            // if (!response.ok) {
-            //     // Handle error response
-            //     setErrorMessage(data.message || 'Login failed. Please try again.');
-            //     return;
-            // }
-
-            // // Handle successful login using the AppContext
-            // if (data.user && data.tokens) {
-            //     console.log(data)
-            //     // Update the AppContext with user data and token
-            //     setUser(data.user, data.tokens.accessToken);
-            //     router.push('/');
-            // } else {
-            //     setErrorMessage('Invalid response from server');
-            // }
+       
             const { data, loading } = await login({ variables: { email, password } })
             console.log(loading)
             if (data) {

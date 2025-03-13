@@ -158,8 +158,8 @@ export default function TweetModal({ tweet, comments, onClose }: TweetModalProps
                 <div className="space-y-4 pt-4">
                     <h4 className="font-semibold text-lg">Commentaires</h4>
                     {commentList.length > 0 ? (
-                        commentList.map((comment) => (
-                            <div key={comment.id} className="p-3 border rounded-lg">
+                        commentList.map((comment, index) => (
+                            <div  key={comment.id || index} className="p-3 border rounded-lg">
                                 <div className="flex items-center gap-2">
                                     <img src={comment.author.profile_img} alt="Profile" className="w-8 h-8 rounded-full" />
                                     <div>

@@ -28,6 +28,7 @@ interface TweetProps {
   retweets: number
   isRetweet: boolean
   isRetweeted: boolean
+  media: string
   comments: [string]
   author: {
     profile_img: string | undefined;
@@ -41,7 +42,7 @@ interface TweetProps {
  
 export default function Tweet({
    id, content, createdAt, isFollowing, author, isLiked, likes,
-   retweets, isRetweeted, comments
+   retweets, isRetweeted, comments, media
   }: TweetProps) {
   const [liked, setLiked] = useState(isLiked)
   const [retweeted, setRetweeted] = useState(isRetweeted)
@@ -165,6 +166,11 @@ export default function Tweet({
     </div>
     
     <p className="mt-2">{content}</p>
+    {media && (media.endsWith(".mp4") || media.endsWith(".webm")) ? (
+      <video src={media} controls className="mt-2 w-full rounded-lg"></video>
+    ) : media ? (
+      <img src={media} alt="Tweet media" className="mt-2 w-full rounded-lg object-cover" />
+    ) : null}
     <div className="flex gap-8 mt-4 text-gray-500">
       {/* comment icon button */}
       <button className="flex items-center gap-2 hover:text-blue-500">
@@ -172,13 +178,14 @@ export default function Tweet({
         <span>{comments?comments.length:0}</span> {/* Ex: 1,200 */}
       </button>
       {/* retweet button */}
+      {!(appState?.user?._id === author._id) &&(
       <button 
           className={`flex items-center gap-2 ${retweeted ? "text-blue-500" : "hover:text-blue-500"}`}
           onClick={(e) => handleRetweet(e)}
         >
         {retweeted ? <ArrowPathSolid className="w-5 h-5" /> : <ArrowPathIcon className="w-5 h-5" />}
         <span>{retweetsCount}</span>
-      </button>
+      </button>)}
       {/* like unlike */}
       <button 
         className={`flex items-center gap-2 ${liked ? "text-red-500" : "hover:text-red-500"}`}

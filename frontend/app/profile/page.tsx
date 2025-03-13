@@ -16,6 +16,8 @@ const GET_USER_INFO = gql`
         email
         profile_img
         bio
+        followings
+        followers
       }
       tweets {
         id

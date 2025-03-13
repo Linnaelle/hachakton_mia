@@ -78,7 +78,8 @@ const typeDefs = gql`
     bio: String
     profile_img: String
     banniere_img: String
-    followers: String
+    followers: [String]
+    followings: [String]
   }
   
   # Type simplifié pour les informations de base d'un utilisateur
