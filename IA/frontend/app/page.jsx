@@ -1,25 +1,138 @@
-// app/page.jsx
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import EmotionDisplay from '../components/EmotionDisplay';
-import CameraComponent from '../components/CameraComponent';
+import { API_URL } from '../utils/config';
 
 export default function Home() {
   const [prediction, setPrediction] = useState(null);
-  const [capturing, setCapturing] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState(null);
-  const [faceImage, setFaceImage] = useState(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [stream, setStream] = useState(null);
+  const captureIntervalRef = useRef(null);
 
-  // Fonction pour gérer la capture et l'envoi de l'image au backend
-  const handleCapture = async (imageSrc) => {
+  // Traduction des émotions en français
+  const emotionLabels = {
+    'angry': 'Colère',
+    'disgust': 'Dégoût',
+    'fear': 'Peur',
+    'happy': 'Joie',
+    'neutral': 'Neutre',
+    'sad': 'Tristesse',
+    'surprise': 'Surprise'
+  };
+
+  // Map des icônes emoji pour chaque émotion
+  const emotionEmojis = {
+    'angry': '😠',
+    'disgust': '🤢',
+    'fear': '😨',
+    'happy': '😃',
+    'neutral': '😐',
+    'sad': '😢',
+    'surprise': '😲'
+  };
+
+  // Initialisation de la caméra
+  useEffect(() => {
+    async function setupCamera() {
+      try {
+        setError(null);
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+          audio: false,
+        });
+        
+        setStream(mediaStream);
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+        
+        // Démarrer la capture automatique avec un délai
+        setTimeout(() => {
+          startCaptureInterval();
+        }, 1000);
+      } catch (err) {
+        console.error('Erreur d\'accès à la caméra:', err);
+        setError(`Impossible d'accéder à la caméra: ${err.message}`);
+      }
+    }
+
+    setupCamera();
+
+    // Nettoyage
+    return () => {
+      stopCaptureInterval();
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  // Démarrer la capture à intervalles réguliers (5 secondes)
+  const startCaptureInterval = () => {
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+    }
+    
+    // Faire une capture immédiate
+    if (!isAnalyzing) {
+      captureImage();
+    }
+    
+    // Configurer l'intervalle
+    captureIntervalRef.current = setInterval(() => {
+      if (!isAnalyzing) {
+        captureImage();
+      }
+    }, 5000);
+  };
+
+  // Arrêter la capture à intervalles réguliers
+  const stopCaptureInterval = () => {
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+      captureIntervalRef.current = null;
+    }
+  };
+
+  // Fonction pour capturer une image du flux vidéo
+  const captureImage = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    // Définir les dimensions du canvas pour correspondre à la vidéo
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Dessiner l'image sur le canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Convertir en base64
+    const imageSrc = canvas.toDataURL('image/jpeg', 0.8);
+    
+    // Envoyer l'image au backend
+    analyzeImage(imageSrc);
+  };
+
+  // Fonction pour analyser l'image
+  const analyzeImage = async (imageSrc) => {
     try {
-      setLoading(true);
+      if (isAnalyzing) return;
+
+      setIsAnalyzing(true);
       setError(null);
       
       // Envoyer l'image au backend
-      const response = await fetch('http://localhost:8000/predict-base64/', {
+      const response = await fetch(`${API_URL}/predict-base64/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -28,117 +141,105 @@ export default function Home() {
       });
       
       if (!response.ok) {
-        throw new Error(`Erreur: ${response.statusText}`);
+        throw new Error(`Erreur: ${response.status} ${response.statusText}`);
       }
       
       const result = await response.json();
       
       if (result.prediction === "Aucun visage détecté") {
-        setError("Aucun visage détecté. Veuillez vous positionner face à la caméra.");
-        setPrediction(null);
+        setError("Aucun visage détecté");
       } else {
         setPrediction(result);
-        setFaceImage(result.face_image);
       }
     } catch (err) {
       console.error('Erreur lors de la prédiction:', err);
-      setError(`Erreur lors de l'analyse: ${err.message}`);
-      setPrediction(null);
+      setError(`Erreur: ${err.message}`);
     } finally {
-      setLoading(false);
+      setIsAnalyzing(false);
     }
   };
 
-  // Activer/désactiver la capture continue
-  const toggleCapturing = () => {
-    setCapturing(!capturing);
+  // Obtenir la couleur de fond en fonction de l'émotion
+  const getEmotionBackground = () => {
+    if (!prediction) return 'bg-gray-900';
+    
+    const backgrounds = {
+      'angry': 'bg-red-800',
+      'disgust': 'bg-purple-800',
+      'fear': 'bg-yellow-800',
+      'happy': 'bg-green-700',
+      'neutral': 'bg-gray-700',
+      'sad': 'bg-blue-800',
+      'surprise': 'bg-pink-700'
+    };
+    
+    return backgrounds[prediction.prediction] || 'bg-gray-900';
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-24 bg-gray-100">
-      <div className="z-10 w-full max-w-5xl items-center justify-center font-mono text-sm flex flex-col">
-        <h1 className="text-4xl font-bold mb-8 text-center text-blue-600">
-          Reconnaissance d'Émotions Faciales
-        </h1>
-        
-        <div className="w-full flex flex-col md:flex-row gap-6">
-          {/* Section caméra */}
-          <div className="flex-1 bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Caméra</h2>
-            <CameraComponent 
-              onCapture={handleCapture} 
-              capturing={capturing} 
-              setCapturing={setCapturing}
+    <div className={`min-h-screen ${getEmotionBackground()} flex flex-col items-center justify-center p-4 transition-colors duration-700`}>
+      <h1 className="text-3xl font-bold text-white mb-8">Détecteur d'Émotions</h1>
+      
+      <div className="max-w-4xl w-full">
+        {/* Vidéo et résultat */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Vidéo */}
+          <div className="bg-black rounded-lg overflow-hidden shadow-xl">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full aspect-video object-cover"
             />
             
-            <div className="mt-4 flex flex-col gap-3">
-              <button
-                onClick={toggleCapturing}
-                className={`px-4 py-2 rounded-md font-medium ${
-                  capturing 
-                    ? 'bg-red-500 hover:bg-red-600 text-white' 
-                    : 'bg-green-500 hover:bg-green-600 text-white'
-                }`}
-              >
-                {capturing ? 'Arrêter la capture' : 'Démarrer la capture continue'}
-              </button>
-              
-              {!capturing && (
-                <button
-                  onClick={() => document.getElementById('captureButton').click()}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 font-medium"
-                  disabled={loading}
-                >
-                  {loading ? 'Analyse en cours...' : 'Capturer une image'}
-                </button>
-              )}
-            </div>
-          </div>
-          
-          {/* Section résultat */}
-          <div className="flex-1 bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Résultat</h2>
+            {isAnalyzing && (
+              <div className="relative mt-2 px-4 py-2">
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span className="text-white text-sm">Analyse en cours...</span>
+                </div>
+              </div>
+            )}
             
             {error && (
-              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
-                <p>{error}</p>
+              <div className="mt-2 bg-red-500 text-white p-2 text-center text-sm rounded">
+                {error}
               </div>
             )}
-            
-            {loading && (
-              <div className="flex items-center justify-center p-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
+          
+          {/* Résultat */}
+          <div className="bg-black bg-opacity-30 rounded-lg overflow-hidden shadow-xl p-6 flex flex-col items-center justify-center">
+            {prediction ? (
+              <div className="text-center">
+                <div className="text-8xl mb-4">
+                  {emotionEmojis[prediction.prediction] || '❓'}
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-2">
+                  {emotionLabels[prediction.prediction] || prediction.prediction}
+                </h2>
+                <p className="text-white text-opacity-80">
+                  Confiance: {(prediction.confidence * 100).toFixed(1)}%
+                </p>
               </div>
-            )}
-            
-            {!loading && !error && faceImage && (
-              <div className="mb-4">
-                <h3 className="text-lg font-medium mb-2 text-gray-700">Visage détecté:</h3>
-                <img 
-                  src={faceImage} 
-                  alt="Visage détecté" 
-                  className="w-full max-w-[300px] mx-auto border-2 border-gray-300 rounded-md"
-                />
-              </div>
-            )}
-            
-            {prediction && <EmotionDisplay prediction={prediction} />}
-            
-            {!prediction && !loading && !error && (
-              <div className="text-center p-8 text-gray-500">
-                Capturez une image pour obtenir une prédiction
+            ) : (
+              <div className="text-center text-white text-opacity-80">
+                <div className="text-6xl mb-4">😶</div>
+                <p>En attente de détection...</p>
               </div>
             )}
           </div>
         </div>
         
-        <div className="mt-8 text-center text-gray-600">
-          <p>Utilisez cette application pour détecter les émotions en temps réel.</p>
-          <p className="mt-2 text-sm">
-            Modèle entraîné sur le dataset FER2013 avec 7 catégories d'émotions.
-          </p>
-        </div>
+        {/* Message d'instruction */}
+        <p className="text-white text-opacity-70 text-center mt-6">
+          Regardez la caméra pour que l'IA puisse analyser votre expression faciale. L'analyse se fait automatiquement toutes les 5 secondes.
+        </p>
       </div>
-    </main>
+      
+      {/* Canvas caché pour la capture d'image */}
+      <canvas ref={canvasRef} className="hidden" />
+    </div>
   );
 }

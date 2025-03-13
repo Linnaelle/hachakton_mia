@@ -9,13 +9,15 @@ import base64
 import io
 from PIL import Image
 import uvicorn
+from datetime import datetime
+from EmotionDisplay import format_prediction, get_emotion_history, get_dominant_emotion
 
 app = FastAPI()
 
 # Configuration CORS pour permettre les requêtes depuis le frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Remplacer par l'URL de votre frontend en production
+    allow_origins=["http://localhost:3001"],  # Autorise le frontend IA
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,6 +27,7 @@ app.add_middleware(
 model = None
 detector = None
 emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
+emotion_history = []  # Pour stocker l'historique des émotions détectées
 
 @app.on_event("startup")
 async def startup_event():
@@ -37,11 +40,28 @@ async def startup_event():
 
 @app.get("/")
 def read_root():
-    return {"message": "API de reconnaissance d'émotions faciales"}
+    return {"message": "API de reconnaissance d'émotions faciales", "version": "1.0"}
+
+@app.get("/emotions")
+def get_emotions():
+    """Renvoie la liste des émotions que le modèle peut détecter"""
+    return {
+        "emotions": emotion_labels,
+        "count": len(emotion_labels)
+    }
+
+@app.get("/history")
+def get_history(limit: int = 10):
+    """Renvoie l'historique des émotions détectées"""
+    global emotion_history
+    return {
+        "history": get_emotion_history(emotion_history, limit),
+        "dominant_emotion": get_dominant_emotion(emotion_history)
+    }
 
 @app.post("/predict/")
 async def predict_emotion(file: UploadFile = File(...)):
-    global model, detector
+    global model, detector, emotion_history
     
     if model is None or detector is None:
         raise HTTPException(status_code=500, detail="Le modèle n'est pas chargé")
@@ -89,20 +109,37 @@ async def predict_emotion(file: UploadFile = File(...)):
     # Faire la prédiction
     prediction = model.predict(face_img_gray)
     
-    # Récupérer l'indice de la classe prédite
-    predicted_class = np.argmax(prediction[0])
-    predicted_emotion = emotion_labels[predicted_class]
-    confidence = float(prediction[0][predicted_class])
+    # Formater la prédiction avec le module EmotionDisplay
+    result = format_prediction(prediction, emotion_labels)
     
-    return {
-        "prediction": predicted_emotion,
-        "confidence": confidence,
-        "all_predictions": {emotion: float(pred) for emotion, pred in zip(emotion_labels, prediction[0])}
-    }
+    # Créer un rectangle autour du visage
+    box_x, box_y, box_w, box_h = face['box']
+    face_with_box = img.copy()
+    cv2.rectangle(face_with_box, (box_x, box_y), (box_x + box_w, box_y + box_h), (0, 255, 0), 2)
+    
+    # Ajouter l'émotion en texte au-dessus du rectangle
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    emotion_text = f"{result['label_fr']}: {(result['confidence']*100):.1f}%"
+    cv2.putText(face_with_box, emotion_text, (box_x, box_y - 10), font, 0.9, (255, 255, 255), 2)
+    
+    # Convertir l'image résultante en base64 pour l'affichage côté client
+    _, buffer = cv2.imencode('.jpg', face_with_box)
+    face_base64 = base64.b64encode(buffer).decode('utf-8')
+    
+    # Ajouter l'image et l'horodatage au résultat
+    result["face_image"] = f"data:image/jpeg;base64,{face_base64}"
+    result["timestamp"] = datetime.now().isoformat()
+    
+    # Ajouter à l'historique
+    emotion_history.append(result)
+    if len(emotion_history) > 100:  # Limiter la taille de l'historique
+        emotion_history = emotion_history[-100:]
+    
+    return result
 
 @app.post("/predict-base64/")
 async def predict_emotion_base64(data: dict):
-    global model, detector
+    global model, detector, emotion_history
     
     if model is None or detector is None:
         raise HTTPException(status_code=500, detail="Le modèle n'est pas chargé")
@@ -151,26 +188,33 @@ async def predict_emotion_base64(data: dict):
     # Faire la prédiction
     prediction = model.predict(face_img_gray)
     
-    # Récupérer l'indice de la classe prédite
-    predicted_class = np.argmax(prediction[0])
-    predicted_emotion = emotion_labels[predicted_class]
-    confidence = float(prediction[0][predicted_class])
+    # Formater la prédiction avec le module EmotionDisplay
+    result = format_prediction(prediction, emotion_labels)
     
     # Créer un rectangle autour du visage
     box_x, box_y, box_w, box_h = face['box']
     face_with_box = img.copy()
     cv2.rectangle(face_with_box, (box_x, box_y), (box_x + box_w, box_y + box_h), (0, 255, 0), 2)
     
+    # Ajouter l'émotion en texte au-dessus du rectangle
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    emotion_text = f"{result['label_fr']}: {(result['confidence']*100):.1f}%"
+    cv2.putText(face_with_box, emotion_text, (box_x, box_y - 10), font, 0.9, (255, 255, 255), 2)
+    
     # Convertir l'image résultante en base64 pour l'affichage côté client
     _, buffer = cv2.imencode('.jpg', face_with_box)
     face_base64 = base64.b64encode(buffer).decode('utf-8')
     
-    return {
-        "prediction": predicted_emotion,
-        "confidence": confidence,
-        "all_predictions": {emotion: float(pred) for emotion, pred in zip(emotion_labels, prediction[0])},
-        "face_image": f"data:image/jpeg;base64,{face_base64}"
-    }
+    # Ajouter l'image et l'horodatage au résultat
+    result["face_image"] = f"data:image/jpeg;base64,{face_base64}"
+    result["timestamp"] = datetime.now().isoformat()
+    
+    # Ajouter à l'historique
+    emotion_history.append(result)
+    if len(emotion_history) > 100:  # Limiter la taille de l'historique
+        emotion_history = emotion_history[-100:]
+    
+    return result
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
