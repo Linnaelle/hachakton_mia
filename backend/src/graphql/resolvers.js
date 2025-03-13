@@ -2,7 +2,7 @@ const redis = require('../config/redis')
 const esClient = require('../utils/elasticsearchClient')
 const { Tweet } = require('../models/tweets')
 const { generateAccessToken, verifyToken } = require('../utils/auth')
-const { generateToken } = require('../services/tokenService')
+const { generateTokens } = require('../services/tokenService')
 const bcrypt = require('bcryptjs')
 const fs = require('fs')
 const path = require('path')
@@ -399,7 +399,7 @@ const resolvers = {
         const match = await bcrypt.compare(password, user.password);
         if (!match) throw new Error("Mot de passe incorrect");
   
-        const token = generateAccessToken(user);
+        const {accessToken: token} = await generateTokens(user);
         redis.set(`token_${user._id}`, token, 'EX', 7200);
         return { ...user._doc, id: user._id, token };
     },
