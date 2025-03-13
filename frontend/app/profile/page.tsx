@@ -22,7 +22,6 @@ const GET_USER_INFO = gql`
         content
         media
         createdAt
-        
         author {
           id
           username
@@ -32,15 +31,23 @@ const GET_USER_INFO = gql`
       comments {
         id
         content
+        }
+      likedTweets {
+        id
+        content
+        media
+        createdAt
+        retweets
+        likes 
+        isLiked
+        isRetweet
+        isRetweeted
+        isFollowing
         author {
           id
           username
           profile_img
         }
-        tweetId
-        }
-      likedTweets {
-        id
       }
       bookmarks {
         id

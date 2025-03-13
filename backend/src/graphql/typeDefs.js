@@ -185,10 +185,10 @@ const typeDefs = gql`
   # Type pour le fil d'activité d'un utilisateur
   type userTimeline {
     user: User!
-    tweets: [Tweet!]!
+    tweets: [TimelineResponse!]!
     comments: [Comment!]!
-    likedTweets: [Tweet!]!
-    bookmarks: [Tweet!]!
+    likedTweets: [TimelineResponse!]!
+    bookmarks: [TimelineResponse!]!
   }
 `;
 

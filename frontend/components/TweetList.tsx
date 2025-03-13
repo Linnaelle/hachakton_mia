@@ -31,6 +31,7 @@ interface TweetsListProps {
 }
 
 export default function TweetsList({ tweets, loading }: TweetsListProps) {
+    console.log(tweets)
     const [selectedTweet, setSelectedTweet] = useState<TweetData | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
 
