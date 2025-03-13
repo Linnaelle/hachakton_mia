@@ -169,6 +169,24 @@ class userController {
     static async userTimeline(req, res) {
 
     }
+    
+    static async edit (req, res) {
+      try {
+          //récupère l'id de l'utilisateur authentifié
+        const userId = req.user.id
+        const { bio } = req.body
+        // Gerer image upload
+        const profile_img = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : null
+        let user = user.findById(userId)
+        if (!user) {
+          return res.statut(400).json({ message: "user not found"})
+        }
+        
+      } catch(error) {
+        console.error('Error editing:', error)
+        res.status(500).json({ message: 'Internal server error' })
+      }
+    }
 }
 
 module.exports = userController

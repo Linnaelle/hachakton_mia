@@ -111,9 +111,14 @@ const resolvers = {
         .populate("author", "username handle profile_img")
         .sort({ engagementScore: -1 })
         .limit(50);
-    
+      
+      const ownTweets = await Tweet.find({ author: currentUser.id })
+        .populate("author", "username handle profile_img")
+        .sort({ createdAt: -1 })
+        .limit(50);
       // Fusionner et trier les tweets
       const timelineTweets = [
+        ...ownTweets, // 🔥 Include user's own tweets
         ...followedTweets,
         ...likedAndRetweetedTweets.map((like) => like.tweet),
         ...tweetsWithTrendingHashtags,
@@ -150,7 +155,7 @@ const resolvers = {
         comments: tweet.comments,
       })).sort((a, b) => b.likes + b.retweets - (a.likes + a.retweets));
     
-      await redis.setex(cacheKey, 60, JSON.stringify(finalTweets)); // Cache pour 60 secondes
+      await redis.setex(cacheKey, 20, JSON.stringify(finalTweets)); // Cache pour 60 secondes
       return finalTweets;
     },
     getUserTweets: async(_, { userId }) => {
@@ -455,7 +460,8 @@ const resolvers = {
         content: tweet.content,
         author: user.id,
       });
-      wss.clients.forEach(client => client.send(payload));
+      wss.clients.forEach(client => client.send(payload))
+      await redis.del(`timeline:${user.id}`); // 🔥 Clear cache so the timeline updates
 
       return tweet;
     },
