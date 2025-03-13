@@ -50,26 +50,26 @@ export default function PageReinitialiserMotDePasse() {
                 }),
             });
 
-            const data = await response.json();
+            const data = await response.json()
 
             if (!response.ok) {
-                throw new Error(data.message || 'Échec de la réinitialisation du mot de passe');
+                throw new Error(data.message || 'Échec de la réinitialisation du mot de passe')
             }
 
-            setSuccess('Mot de passe réinitialisé avec succès. Redirection vers la connexion...');
+            setSuccess('Mot de passe réinitialisé avec succès. Redirection vers la connexion...')
             
             setTimeout(() => {
-                router.push('/connexion');
-            }, 2000);
+                router.push('/login')
+            }, 2000)
 
         } catch (error: unknown) {
             if (error instanceof Error) {
-                setError(error.message);
+                setError(error.message)
             } else {
-                setError('Une erreur inattendue est survenue');
+                setError('Une erreur inattendue est survenue')
             }
         } finally {
-            setIsLoading(false);
+            setIsLoading(false)
         }
     };
 
