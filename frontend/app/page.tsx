@@ -1,21 +1,25 @@
 import Sidebar from '../components/Sidebar';
 import Feed from '../components/Feed';
-import Search from '../components/Search';
 import SuggestedProfiles from "../components/SuggestedProfiles";
 
 export default function Home() {
-  return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      
-      <main className="flex-1 border-x border-gray-200 max-w-2xl pt-22">
-        <Feed />
-      </main>
-      
-      <div className="w-96 hidden lg:block">
-        <Search />
-        <SuggestedProfiles />
-      </div>
-    </div>
-  );
+    return (
+        <div className="flex justify-center min-h-screen bg-gray-100 text-black pt-22">
+            {/* Centered container with a max width */}
+            <div className="flex w-full max-w-[1600px]">
+                {/* Sidebar */}
+                <Sidebar />
+
+                {/* Main content (Feed) */}
+                <main className="flex-1 max-w-2xl border-x border-gray-700">
+                    <Feed />
+                </main>
+
+                {/* Suggested Profiles (hidden on smaller screens) */}
+                <div className="w-96 hidden lg:block p-4">
+                    <SuggestedProfiles />
+                </div>
+            </div>
+        </div>
+    );
 }
