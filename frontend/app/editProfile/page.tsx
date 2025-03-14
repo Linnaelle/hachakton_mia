@@ -11,7 +11,7 @@ const GET_USER_INFO = gql`
   query User {
     userTimeline {
       user {
-        id
+        _id
         username
         email
         profile_img

@@ -23,7 +23,7 @@ interface Comment {
     content: string;
     id_tweet: number;
     author: {
-        id: string;
+        _id: string;
         username: string;
         handle: string;
         profile_img: string;
@@ -38,6 +38,7 @@ interface TweetModalProps {
 }
 
 export default function TweetModal({ tweet, comments, onClose }: TweetModalProps) {
+    console.log(comments)
     const [newComment, setNewComment] = useState("");
     const [commentList, setCommentList] = useState<Comment[]>(comments);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -159,7 +160,7 @@ export default function TweetModal({ tweet, comments, onClose }: TweetModalProps
                     <h4 className="font-semibold text-lg">Commentaires</h4>
                     {commentList.length > 0 ? (
                         commentList.map((comment, index) => (
-                            <div  key={comment.id || index} className="p-3 border rounded-lg">
+                            <div key={comment.id || index} className="p-3 border rounded-lg">
                                 <div className="flex items-center gap-2">
                                     <img src={comment.author.profile_img} alt="Profile" className="w-8 h-8 rounded-full" />
                                     <div>
