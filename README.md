@@ -150,6 +150,11 @@ npm run dev
 ## 🌐 Déploiement
 
 - Docker
-- Kubernetes (optionnel)
-- Services cloud
+- lancement
+```bash
+docker-compose up -d --build
+```
+- Arrret
+```bash
+docker-compose down
 ```
