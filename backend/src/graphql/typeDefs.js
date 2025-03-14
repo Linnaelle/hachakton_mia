@@ -14,7 +14,7 @@ const typeDefs = gql`
 
   # Type pour la réponse de tweet avec des informations supplémentaires
   type TweetResponse {
-    id: ID!
+    id: ID
     content: String
     media: String
     createdAt: String
@@ -84,7 +84,7 @@ const typeDefs = gql`
   
   # Type simplifié pour les informations de base d'un utilisateur
   type UserBasicInfo {
-    id: ID!
+    _id: ID!
     username: String
     handle: String
     profile_img: String

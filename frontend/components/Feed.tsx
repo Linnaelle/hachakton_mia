@@ -6,29 +6,7 @@ import { Image, FileImage, Smile, BarChart, MapPin, Camera } from "lucide-react"
 import TweetsList from "./TweetList";
 import Tabs from "./Tabs";
 import { useAppContext } from "@/app/context/appContext";
-
-const GET_TWEETS = gql`
-  query GetTweets {
-    getTimeline {
-      id
-      content
-      media
-      likes
-      retweets
-      isRetweet
-      isRetweeted
-      isLiked
-      isFollowing
-      createdAt
-      comments
-      author {
-        profile_img
-        _id
-        username
-      }
-    }
-  }
-`;
+import { GET_TWEETS, GET_ALL_TWEETS } from "@/app/graphql/queries";
 
 export default function Feed() {
   const [activeTab, setActiveTab] = useState("forYou");
@@ -42,7 +20,11 @@ export default function Feed() {
 
   const [mediaTypes] = useState("image/*,video/*");
 
-  const { data, loading, error } = useQuery(GET_TWEETS, {
+  // const { data, loading, error } = useQuery(GET_TWEETS, {
+  //   fetchPolicy: "cache-and-network",
+  // });
+  // Choix de la requête en fonction de l'état de connexion
+  const { data, loading, error } = useQuery(appState?.isLoggedIn ? GET_TWEETS : GET_ALL_TWEETS, {
     fetchPolicy: "cache-and-network",
   });
 
@@ -64,6 +46,7 @@ export default function Feed() {
   }, []);
 
   const handlePostTweet = useCallback(async () => {
+    if (!appState?.isLoggedIn) return;
     if (!newTweet.trim() && !selectedFile) return;
     setIsLoading(true);
     try {
@@ -122,6 +105,7 @@ export default function Feed() {
                     </button>
                 ))}
               </div>
+              
               <button
                   className={`px-4 py-2 rounded text-white ${newTweet.trim() || selectedFile ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-400 cursor-not-allowed"}`}
                   onClick={handlePostTweet}
@@ -131,7 +115,11 @@ export default function Feed() {
               </button>
             </div>
           </div>
+          {appState?.isLoggedIn ? (
           <TweetsList tweets={data?.getTimeline || []} loading={loading} />
+        ) : (
+          <TweetsList tweets={data?.publicTimeline || []} loading={loading} />
+        )}
         </div>
       </div>
   );

@@ -108,6 +108,7 @@ export default function Tweet({
 
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!appState?.isLoggedIn) return;
 
     try {
       const { data } = await likeTweet();
@@ -122,6 +123,7 @@ export default function Tweet({
  
   const handleRetweet = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!appState?.isLoggedIn) return;
 
     try {
       const { data } = await reTweet();
@@ -154,9 +156,8 @@ export default function Tweet({
       {/* follow button */}
       {!(appState?.user?._id === author._id) &&(
       <button
-        // onClick={(e) => handleButtonClick(e, onFollowToggle)}
         onClick={handleFollow}
-        disabled={loading}
+        disabled={!appState?.isLoggedIn || loading}
         className={`flex items-center gap-1 px-3 py-1 text-sm font-medium 
           ${following ? "bg-blue-500 text-white" : "bg-black text-white"} 
           rounded-full hover:bg-gray-800 transition`} >
@@ -178,14 +179,15 @@ export default function Tweet({
         <span>{comments?comments.length:0}</span> {/* Ex: 1,200 */}
       </button>
       {/* retweet button */}
-      {!(appState?.user?._id === author._id) &&(
+     
       <button 
           className={`flex items-center gap-2 ${retweeted ? "text-blue-500" : "hover:text-blue-500"}`}
           onClick={(e) => handleRetweet(e)}
+          disabled={(appState?.user?._id === author._id)}
         >
         {retweeted ? <ArrowPathSolid className="w-5 h-5" /> : <ArrowPathIcon className="w-5 h-5" />}
         <span>{retweetsCount}</span>
-      </button>)}
+      </button>
       {/* like unlike */}
       <button 
         className={`flex items-center gap-2 ${liked ? "text-red-500" : "hover:text-red-500"}`}

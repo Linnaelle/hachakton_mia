@@ -2,6 +2,8 @@
 
 import { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User } from '../type/user';
+// import { useMutation } from "@apollo/client";
+// import { LOGIN_MUTATION } from "../graphql/mutations";
 
 interface AppContextType {
     query: string;

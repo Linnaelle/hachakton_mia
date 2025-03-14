@@ -1,5 +1,51 @@
-import { gql } from "@apollo/client";
+import { gql } from "@apollo/client"
 
+
+export const GET_ALL_TWEETS = gql`
+  query GET_ALL_TWEETS {
+    publicTimeline {
+      id
+      content
+      media
+      likes
+      retweets
+      isRetweet
+      isRetweeted
+      isLiked
+      isFollowing
+      createdAt
+      comments
+      author {
+        profile_img
+        _id
+        username
+      }
+    }
+  }
+`
+
+export const GET_TWEETS = gql`
+  query GetTweets {
+    getTimeline {
+      id
+      content
+      media
+      likes
+      retweets
+      isRetweet
+      isRetweeted
+      isLiked
+      isFollowing
+      createdAt
+      comments
+      author {
+        profile_img
+        _id
+        username
+      }
+    }
+  }
+`
 // Définition de la requête GraphQL
 export const GET_TWEET = gql`
   query GetTweet($id: ID!) {
@@ -11,7 +57,7 @@ export const GET_TWEET = gql`
       isLiked
       isRetweeted
       author {
-        id
+        _id
         username
         handle
         profile_img
@@ -21,7 +67,7 @@ export const GET_TWEET = gql`
         content
         createdAt
         author {
-          id
+          _id
           username
           handle
           profile_img

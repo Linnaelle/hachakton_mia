@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useEffect } from "react";
-import { useLazyQuery } from "@apollo/client";
+import { useLazyQuery, useQuery } from "@apollo/client";
 import Tweet from "./Tweet";
 import TweetModal from "./TweetModal";
 import { GET_TWEET } from "../app/graphql/queries";
@@ -42,7 +42,7 @@ export default function TweetsList({ tweets, loading }: TweetsListProps) {
 
     const openTweet = (tweet: TweetData) => {
         setSelectedTweet(tweet);
-        setComments([]); // Réinitialise avant de charger les nouveaux
+        // setComments([]); // Réinitialise avant de charger les nouveaux
         fetchTweet({ variables: { id: tweet.id } });
     };
 
@@ -53,7 +53,7 @@ export default function TweetsList({ tweets, loading }: TweetsListProps) {
         } else {
             setComments([]); // Réinitialise les commentaires pour éviter l'affichage des anciens
         }
-    }, [data, selectedTweet]); // Ajout de selectedTweet
+    }, [data, selectedTweet]); // Ajout de selectedTweet et data.getTweet.comments
 
     return (
         <div>
